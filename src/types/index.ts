@@ -1,6 +1,29 @@
 export type IssueCategory = 'jalan' | 'jembatan' | 'sampah' | 'bangunan' | 'drainase';
-export type IssueStatus = 'mangkrak' | 'dalam_perbaikan' | 'selesai';
+export type IssueStatus = 'new' | 'open' | 'closed' | 'archived';
 export type SourceType = 'citizen' | 'ai_media';
+export type SeverityLevel = 'rendah' | 'sedang' | 'tinggi' | 'kritis';
+
+export interface ReportSubmission {
+  reporterName: string;
+  reporterEmail: string;
+  imageFile?: File;
+  imagePreviewUrl?: string;
+  aiCategory?: IssueCategory;
+  aiSeverity?: SeverityLevel;
+  finalCategory: IssueCategory;
+  finalSeverity: SeverityLevel;
+  latitude?: number;
+  longitude?: number;
+  locationMethod: 'gps' | 'manual' | null;
+  locationLabel?: string;
+  description?: string;
+}
+
+export interface StatusHistory {
+  status: IssueStatus;
+  timestamp: string;
+  message: string;
+}
 
 export interface IssueReport {
   id: string;
@@ -16,4 +39,6 @@ export interface IssueReport {
   reportedAt: string;
   lastConfirmedAt: string;
   confirmationCount: number;
+  location?: string;
+  statusHistory: StatusHistory[];
 }
