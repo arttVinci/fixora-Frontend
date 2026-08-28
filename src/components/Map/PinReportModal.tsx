@@ -104,11 +104,10 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
                   key={cat.id}
                   type="button"
                   onClick={() => setCategory(cat.id)}
-                  className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border text-xs font-medium transition-all active:scale-95 ${
-                    category === cat.id
+                  className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border text-xs font-medium transition-all active:scale-95 ${category === cat.id
                       ? 'bg-red-500/20 border-red-500/60 text-white'
                       : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
-                  }`}
+                    }`}
                 >
                   <span className="text-slate-200">{cat.icon}</span>
                   <span className="leading-tight text-center" style={{ fontSize: '10px' }}>{cat.label}</span>

@@ -10,9 +10,9 @@ const categoryLabels: Record<string, string> = {
   drainase: '🌊 Drainase',
 };
 
-const sourceLabels: Record<string, string> = {
+const sourceLabels: Record<IssueReport['source'], string> = {
   citizen: 'Laporan Warga',
-  ai_media: 'Terdeteksi AI',
+  ai_media: 'Media Online',
 };
 
 const statusConfig: Record<string, { label: string; badge: string }> = {

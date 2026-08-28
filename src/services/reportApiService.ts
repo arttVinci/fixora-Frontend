@@ -1,5 +1,5 @@
 import { fetchApi, buildQueryString } from './api';
-import type { ApiReportMapResponse, MapBounds } from '../types/api';
+import type { ApiReportMapResponse, MapBounds, ApiCategory, ApiAnalyzePhotoResponse, ApiCreateReportRequest, ApiReportDetailResponse } from '../types/api';
 import type { IssueReport, IssueCategory, SourceType } from '../types';
 
 function severityToScore(severity: 'ringan' | 'sedang' | 'parah'): number {
@@ -55,7 +55,7 @@ function toIssueReport(api: ApiReportMapResponse): IssueReport {
       {
         status: mapStatus(api.status),
         timestamp: new Date().toISOString(),
-        message: 'Data diambil dari backend.',
+        message: 'Data diambil dari database.',
       },
     ],
   };
@@ -75,4 +75,45 @@ export async function fetchMapReports(bounds: MapBounds): Promise<IssueReport[]>
 
 export async function triggerCrawler(): Promise<void> {
   await fetchApi<null>('/crawl/trigger', { method: 'POST' });
+}
+
+export async function fetchCategories(): Promise<ApiCategory[]> {
+  return fetchApi<ApiCategory[]>('/categories/');
+}
+
+export async function analyzePhoto(file: File): Promise<ApiAnalyzePhotoResponse> {
+  const formData = new FormData();
+  formData.append('photo', file);
+
+  const response = await fetch('/api/reports/analyze-photo', {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error(`Gagal menganalisis foto: ${response.statusText}`);
+  }
+
+  const body = await response.json();
+  if (!body.success) {
+    throw new Error(body.message || 'Gagal menganalisis foto');
+  }
+
+  return body.data;
+}
+
+export async function createReport(payload: ApiCreateReportRequest): Promise<ApiReportDetailResponse> {
+  const response = await fetch('/api/reports/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  const body = await response.json();
+
+  if (!response.ok || !body.success) {
+    throw new Error(body.message || `Gagal mengirim laporan (HTTP ${response.status})`);
+  }
+
+  return body.data as ApiReportDetailResponse;
 }

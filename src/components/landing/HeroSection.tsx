@@ -7,13 +7,19 @@ import HoverButton from '../HoverButton';
 import type { IssueReport } from '../../types';
 
 type HeroSectionProps = {
+  issues?: IssueReport[];
   onLaporMasalah?: () => void;
   onReportSubmitted?: (report: IssueReport) => void;
   onScrollToMap?: () => void;
 };
 
-export default function HeroSection({ onLaporMasalah, onReportSubmitted, onScrollToMap }: HeroSectionProps) {
+export default function HeroSection({ issues = [], onLaporMasalah, onReportSubmitted, onScrollToMap }: HeroSectionProps) {
   const sectionRef = useRef<HTMLElement>(null);
+
+  const totalReports = issues.length;
+  const verifiedReports = issues.filter(i => i.status === 'open' || i.status === 'closed').length;
+  const verifiedPercent = totalReports > 0 ? Math.round((verifiedReports / totalReports) * 100) : 0;
+  const categoriesCount = new Set(issues.map(i => i.category)).size;
 
   useEffect(() => {
     const section = sectionRef.current;
@@ -116,7 +122,7 @@ export default function HeroSection({ onLaporMasalah, onReportSubmitted, onScrol
 
             <Reveal delay={0.16}>
               <p className="text-base sm:text-lg text-slate-300 mb-8 max-w-xl leading-relaxed">
-                Platform transparansi alokasi APBD & pelaporan masalah fasilitas publik secara real-time dengan kecerdasan buatan. Tanpa ribet, langsung ditindaklanjuti.
+                Platform transparansi alokasi APBD & pelaporan masalah fasilitas publik secara real-time. Pantau dan kawal penyelesaian infrastruktur secara terbuka dan terverifikasi.
               </p>
             </Reveal>
 
@@ -141,22 +147,22 @@ export default function HeroSection({ onLaporMasalah, onReportSubmitted, onScrol
             <Reveal delay={0.32}>
               <div className="grid grid-cols-3 gap-3 p-4 rounded-2xl bg-slate-900/60 border border-white/10 backdrop-blur-md max-w-lg">
                 <div>
-                  <div className="text-xl sm:text-2xl font-bold text-primary-400 font-heading">
-                    <AnimatedCounter end={500} suffix="+" />
+                  <div className="text-xl sm:text-2xl font-bold text-primary-400">
+                    <AnimatedCounter end={totalReports} suffix={totalReports > 50 ? '+' : ''} />
                   </div>
                   <div className="text-slate-400 text-xs mt-0.5">Laporan Aktif</div>
                 </div>
                 <div className="border-x border-white/10 px-3">
-                  <div className="text-xl sm:text-2xl font-bold text-green-400 font-heading">
-                    <AnimatedCounter end={85} suffix="%" />
+                  <div className="text-xl sm:text-2xl font-bold text-green-400">
+                    <AnimatedCounter end={verifiedPercent} suffix="%" />
                   </div>
-                  <div className="text-slate-400 text-xs mt-0.5">Ditangani</div>
+                  <div className="text-slate-400 text-xs mt-0.5">Terverifikasi</div>
                 </div>
                 <div className="pl-1">
-                  <div className="text-xl sm:text-2xl font-bold text-amber-400 font-heading">
-                    <AnimatedCounter end={34} suffix="+" />
+                  <div className="text-xl sm:text-2xl font-bold text-amber-400">
+                    <AnimatedCounter end={categoriesCount} suffix="" />
                   </div>
-                  <div className="text-slate-400 text-xs mt-0.5">Provinsi</div>
+                  <div className="text-slate-400 text-xs mt-0.5">Kategori Masalah</div>
                 </div>
               </div>
             </Reveal>

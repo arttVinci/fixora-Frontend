@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { IssueCategory } from '../../types';
+import { analyzePhoto } from '../../services/reportApiService';
 import {
   CameraIcon,
   MapPinIcon,
@@ -8,6 +9,16 @@ import {
   CloseIcon,
   SparklesIcon,
 } from '../Icons';
+
+function mapBackendCategory(cat: string): IssueCategory {
+  const c = (cat || '').toLowerCase();
+  if (c.startsWith('jalan')) return 'jalan';
+  if (c.startsWith('jembatan')) return 'jembatan';
+  if (c.startsWith('sampah')) return 'sampah';
+  if (c.startsWith('bangunan') || c.startsWith('gedung') || c.startsWith('fasilitas')) return 'bangunan';
+  if (c.startsWith('drainase') || c.startsWith('saluran') || c.startsWith('sungai') || c.startsWith('banjir')) return 'drainase';
+  return 'jalan';
+}
 
 interface PhotoReportModalProps {
   isOpen: boolean;
@@ -33,23 +44,35 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
 
   if (!isOpen) return null;
 
-  const handleSimulateUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSimulateUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const url = URL.createObjectURL(file);
-      processPhotoUpload(url);
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    if (uploadedPhotos.length >= 3) return;
+
+    setUploadedPhotos(prev => [...prev, url]);
+    setIsAnalyzing(true);
+
+    try {
+      const result = await analyzePhoto(file);
+      setIsAnalyzing(false);
+      setSelectedCategory(mapBackendCategory(result.category));
+      setDescription(result.description || result.title || '');
+      if (!location) setLocation('Lokasi terdeteksi dari perangkat');
+    } catch (err) {
+      console.warn('[PhotoReportModal] Gagal panggil analyze-photo backend:', err);
+      setIsAnalyzing(false);
+      setSelectedCategory('jalan');
+      setDescription('Foto laporan infrastruktur publik berhasil diunggah.');
     }
   };
 
   const handleDemoPhotoSelect = () => {
     const demoPhoto = 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800';
-    processPhotoUpload(demoPhoto);
-  };
-
-  const processPhotoUpload = (photoUrl: string) => {
     if (uploadedPhotos.length >= 3) return;
 
-    setUploadedPhotos(prev => [...prev, photoUrl]);
+    setUploadedPhotos(prev => [...prev, demoPhoto]);
     setIsAnalyzing(true);
 
     setTimeout(() => {
@@ -57,7 +80,7 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
       setSelectedCategory('jalan');
       setDescription('Terdeteksi kerusakan permukaan jalan berlubang dengan kedalaman ~8cm. Potensi bahaya bagi pengguna jalan.');
       if (!location) setLocation('Jl. Jend. Sudirman No. 42, Jakarta Pusat');
-    }, 1500);
+    }, 1200);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

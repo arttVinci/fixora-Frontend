@@ -1,7 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import type { IssueCategory, SeverityLevel, ReportSubmission, IssueReport } from '../../types';
-import { simulateCvClassifier, submitReport, getGreeting } from '../../services/reportService';
+import { simulateCvClassifier, getGreeting } from '../../services/reportService';
+import { analyzePhoto, createReport } from '../../services/reportApiService';
+import { useCategories } from '../../hooks/useCategories';
 import ReportMapPicker from '../ReportMapPicker';
+
+function mapBackendCategory(cat: string): IssueCategory {
+  const c = (cat || '').toLowerCase();
+  if (c.startsWith('jalan')) return 'jalan';
+  if (c.startsWith('jembatan')) return 'jembatan';
+  if (c.startsWith('sampah')) return 'sampah';
+  if (c.startsWith('bangunan') || c.startsWith('gedung') || c.startsWith('fasilitas')) return 'bangunan';
+  if (c.startsWith('drainase') || c.startsWith('saluran') || c.startsWith('sungai') || c.startsWith('banjir')) return 'drainase';
+  return 'jalan';
+}
+
+function mapBackendSeverity(sev: string): SeverityLevel {
+  if (sev === 'parah') return 'tinggi';
+  if (sev === 'sedang') return 'sedang';
+  return 'rendah';
+}
 import {
   SparklesIcon,
   CameraIcon,
@@ -59,6 +77,7 @@ const emptyReport = (): Partial<ReportSubmission> => ({
 });
 
 export default function InlineHeroAiCard({ onReportSubmitted, onScrollToMap }: InlineHeroAiCardProps) {
+  const { categories } = useCategories();
   const [step, setStep] = useState<Step>('greeting');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -74,7 +93,7 @@ export default function InlineHeroAiCard({ onReportSubmitted, onScrollToMap }: I
 
   useEffect(() => {
     setMessages([
-      { from: 'ai', text: `${greeting}! Saya AI Fixora. Ada kerusakan jalan, jembatan, atau fasilitas umum di sekitarmu? Tuliskan di sini atau upload foto langsung.` }
+      { from: 'ai', text: `${greeting}! Selamat datang di Fixora. Ada kerusakan jalan, jembatan, sampah, atau fasilitas umum di sekitarmu? Tuliskan keterangan di sini atau unggah foto secara langsung.` }
     ]);
   }, [greeting]);
 
@@ -95,7 +114,7 @@ export default function InlineHeroAiCard({ onReportSubmitted, onScrollToMap }: I
     setMessages(prev => [...prev, { from: 'user', text }]);
 
   const handleStartReport = () => {
-    addUserMessage('Buat Laporan Baru 🚀');
+    addUserMessage('Buat Laporan Baru');
     setTimeout(() => {
       addAiMessage('Siap! Siapa nama kamu? (akan disimpan secara internal)');
       setStep('name');
@@ -135,22 +154,50 @@ export default function InlineHeroAiCard({ onReportSubmitted, onScrollToMap }: I
     setImagePreview(previewUrl);
     addUserMessage(`📎 ${file.name}`);
     setReport(r => ({ ...r, imageFile: file, imagePreviewUrl: previewUrl }));
-    setTimeout(() => {
-      addAiMessage('⚙️ Menganalisis foto dengan AI Vision Classifier…');
-      setStep('classifying');
-    }, 300);
+    addAiMessage('Menganalisis foto dengan AI...');
+    setStep('classifying');
+
     try {
-      const result = await simulateCvClassifier(file);
-      setAiResult(result);
-      setReport(r => ({ ...r, aiCategory: result.category, aiSeverity: result.severity, finalCategory: result.category, finalSeverity: result.severity }));
+      const apiResult = await analyzePhoto(file);
+      const category = mapBackendCategory(apiResult.category);
+      const severity = mapBackendSeverity(apiResult.severity);
+
+      setAiResult({
+        category,
+        severity,
+        confidence: 95,
+        description: apiResult.description || apiResult.title,
+      });
+
+      setReport(r => ({
+        ...r,
+        aiCategory: category,
+        aiSeverity: severity,
+        finalCategory: category,
+        finalSeverity: severity,
+        description: apiResult.description,
+      }));
+
       setStep('confirm_ai');
       addAiMessage(
-        `🤖 Hasil Analisis AI: **${result.description}** (Kategori: ${result.category.toUpperCase()}, Keparahan: ${result.severity.toUpperCase()}, Kepercayaan: ${result.confidence}%). Apakah sesuai?`,
+        `Hasil Analisis AI: **${apiResult.title || apiResult.description}**\n• Kategori: ${CATEGORY_LABELS[category]}\n• Tingkat Keparahan: ${SEVERITY_LABELS[severity]}\n\nApakah hasil analisis ini sesuai?`,
         'ai_result'
       );
-    } catch {
-      addAiMessage('⚠️ Gagal menganalisis foto. Silakan pilih kategori secara manual.', 'error');
-      setStep('manual_category');
+    } catch (err) {
+      console.warn('[InlineHeroAiCard] Backend AI gagal, menggunakan analisis lokal:', err);
+      try {
+        const result = await simulateCvClassifier(file);
+        setAiResult(result);
+        setReport(r => ({ ...r, aiCategory: result.category, aiSeverity: result.severity, finalCategory: result.category, finalSeverity: result.severity }));
+        setStep('confirm_ai');
+        addAiMessage(
+          `Hasil Analisis: **${result.description}** (Kategori: ${CATEGORY_LABELS[result.category]}, Keparahan: ${SEVERITY_LABELS[result.severity]}). Apakah sesuai?`,
+          'ai_result'
+        );
+      } catch {
+        addAiMessage('Gagal menganalisis foto. Silakan pilih kategori secara manual.', 'error');
+        setStep('manual_category');
+      }
     }
   };
 
@@ -218,21 +265,82 @@ export default function InlineHeroAiCard({ onReportSubmitted, onScrollToMap }: I
     addAiMessage('📤 Mengirim laporan ke sistem Fixora…');
     await new Promise(res => setTimeout(res, 1000));
     try {
-      const newReport = submitReport({
-        ...report,
-        reporterName: report.reporterName || 'Warga Anonim',
-        reporterEmail: report.reporterEmail || 'warga@fixora.id',
-        finalCategory: report.finalCategory || 'jalan',
-        finalSeverity: report.finalSeverity || 'sedang',
-        locationMethod: report.locationMethod || 'manual',
-        description: desc,
+      const finalCategory = report.finalCategory || 'jalan';
+      const finalSeverity = report.finalSeverity || 'sedang';
+
+      // Map severity frontend → backend
+      const severityMap: Record<string, 'ringan' | 'sedang' | 'parah'> = {
+        rendah: 'ringan',
+        sedang: 'sedang',
+        tinggi: 'parah',
+        kritis: 'parah',
+      };
+      const backendSeverity = severityMap[finalSeverity] ?? 'sedang';
+
+      // Cari category_id UUID dari daftar kategori backend
+      const matchedCategory = categories.find(c => {
+        const slug = c.slug.toLowerCase();
+        return slug.startsWith(finalCategory) || finalCategory.startsWith(slug.split('-')[0]);
       });
-      setReportId(newReport.id);
+      const categoryId = matchedCategory?.id;
+      if (!categoryId) {
+        addAiMessage('⚠️ Kategori tidak ditemukan. Silakan coba lagi.', 'error');
+        setStep('description');
+        return;
+      }
+
+      // Foto placeholder sesuai kategori (Cloudinary belum dikonfigurasi di backend)
+      const photoByCategory: Record<string, string> = {
+        jalan: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800',
+        jembatan: 'https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800',
+        sampah: 'https://images.unsplash.com/photo-1532996122724-e3c354a0b15b?w=800',
+        bangunan: 'https://images.unsplash.com/photo-1486325212027-8081e485255e?w=800',
+        drainase: 'https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=800',
+      };
+      const primaryPhotoUrl = photoByCategory[finalCategory] || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800';
+
+      const titleFromAi = report.description
+        ? `${finalCategory.charAt(0).toUpperCase() + finalCategory.slice(1)} - ${report.locationLabel || 'Lokasi tidak diketahui'}`
+        : `Laporan ${finalCategory.charAt(0).toUpperCase() + finalCategory.slice(1)} - ${report.locationLabel || 'Lokasi tidak diketahui'}`;
+
+      const apiResult = await createReport({
+        category_id: categoryId,
+        title: titleFromAi,
+        description: desc || undefined,
+        latitude: report.latitude ?? -6.2088,
+        longitude: report.longitude ?? 106.8456,
+        address: report.locationLabel,
+        severity: backendSeverity,
+        primary_photo_url: primaryPhotoUrl,
+        reporter_email: report.reporterEmail,
+      });
+
+      setReportId(apiResult.id);
       setStep('done');
-      addAiMessage(`🎉 Laporan #${newReport.id} berhasil terkirim dan telah ditambahkan ke Peta Interaktif! Terima kasih telah berpartisipasi.`, 'success');
-      if (onReportSubmitted) onReportSubmitted(newReport);
-    } catch {
-      addAiMessage('⚠️ Gagal mengirim laporan. Coba lagi.', 'error');
+      addAiMessage(`🎉 Laporan #${apiResult.id.slice(0, 8)}… berhasil terkirim dan telah masuk ke database! Terima kasih telah berpartisipasi.`, 'success');
+
+      // Buat IssueReport lokal agar peta bisa menampilkan laporan baru
+      if (onReportSubmitted) {
+        const localReport: IssueReport = {
+          id: apiResult.id,
+          title: apiResult.title,
+          category: finalCategory,
+          severityScore: backendSeverity === 'parah' ? 8 : backendSeverity === 'sedang' ? 6 : 3,
+          status: 'new',
+          source: 'citizen',
+          imageUrl: primaryPhotoUrl,
+          latitude: apiResult.latitude ?? report.latitude ?? -6.2088,
+          longitude: apiResult.longitude ?? report.longitude ?? 106.8456,
+          reportedAt: new Date().toISOString(),
+          lastConfirmedAt: new Date().toISOString(),
+          confirmationCount: 0,
+          statusHistory: [{ status: 'new', timestamp: new Date().toISOString(), message: 'Laporan baru dikirim.' }],
+        };
+        onReportSubmitted(localReport);
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Gagal mengirim laporan';
+      addAiMessage(`⚠️ ${msg}. Coba lagi.`, 'error');
       setStep('description');
     }
   };
@@ -276,20 +384,16 @@ export default function InlineHeroAiCard({ onReportSubmitted, onScrollToMap }: I
       <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 via-rose-500 to-amber-500 rounded-t-2xl" />
 
       {/* Header */}
-      <div className="px-4 sm:px-5 py-3 border-b border-white/10 bg-slate-900/80 flex items-center justify-between flex-shrink-0">
+      <div className="px-4 sm:px-5 py-3.5 border-b border-white/10 bg-slate-900/80 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary-500/20 border border-primary-500/40 flex items-center justify-center text-primary-400 shadow-glow">
-            <SparklesIcon className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-primary-500/20 border border-primary-500/30 flex items-center justify-center text-primary-400">
+            <CameraIcon className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-heading font-bold text-white text-sm">Fixora AI Assistant</h3>
-            <p className="text-[10px] text-slate-400">Asisten Pelaporan Interaktif Real-time</p>
+            <h3 className="font-bold text-white text-sm">Pusat Pelaporan Fasilitas</h3>
+            <p className="text-[11px] text-slate-400">Layanan Aspirasi & Pengaduan Infrastruktur</p>
           </div>
         </div>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Online
-        </span>
       </div>
 
       {/* Chat Messages Body */}
