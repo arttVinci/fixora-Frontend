@@ -17,7 +17,7 @@ const categoryLabels: Record<IssueReport['category'], string> = {
 
 const sourceLabels: Record<IssueReport['source'], string> = {
   citizen: 'Laporan Warga',
-  ai_media: 'Terdeteksi AI (Media)',
+  ai_media: 'Media Online',
 };
 
 export default function MarkerPopup({ issue, onViewDetail }: MarkerPopupProps) {

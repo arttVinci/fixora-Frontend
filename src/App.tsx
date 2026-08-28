@@ -21,43 +21,28 @@ const DEFAULT_BOUNDS: MapBounds = {
 
 function App() {
   const [issues, setIssues] = useState<IssueReport[]>(mockIssueReports);
-  const [isApiLoading, setIsApiLoading] = useState(true);
-  const [isUsingMock, setIsUsingMock] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
 
     async function loadInitialReports() {
       try {
-        setIsApiLoading(true);
         const apiReports = await fetchMapReports(DEFAULT_BOUNDS);
-        if (!cancelled) {
-          if (apiReports.length > 0) {
-            setIssues(apiReports);
-            setIsUsingMock(false);
-          } else {
-            setIsUsingMock(true);
-          }
+        if (!cancelled && apiReports.length > 0) {
+          setIssues(apiReports);
         }
-      } catch (err) {
-        if (!cancelled) {
-          console.warn('[Fixora] Backend tidak tersedia, menggunakan data mock.', err);
-          setIsUsingMock(true);
-          setIssues(mockIssueReports);
-        }
-      } finally {
-        if (!cancelled) {
-          setIsApiLoading(false);
-        }
+      } catch {
+        // Fallback to mock issues if API is unreachable
       }
     }
 
     loadInitialReports();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
-    if (isUsingMock) return;
     try {
       const apiReports = await fetchMapReports(bounds);
       if (apiReports.length > 0) {
@@ -65,7 +50,7 @@ function App() {
       }
     } catch {
     }
-  }, [isUsingMock]);
+  }, []);
 
   const { totalReports, criticalReports, resolutionRate } = useMemo(() => {
     const t = issues.length;
@@ -92,21 +77,9 @@ function App() {
   return (
     <div className="min-h-screen bg-dark-surface">
       <Navbar />
-      {import.meta.env.DEV && (
-        <div
-          className={`fixed bottom-4 left-4 z-[9999] px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg transition-all ${
-            isApiLoading
-              ? 'bg-amber-500/20 border border-amber-500/50 text-amber-400'
-              : isUsingMock
-              ? 'bg-slate-700/80 border border-slate-600 text-slate-400'
-              : 'bg-green-500/20 border border-green-500/50 text-green-400'
-          }`}
-        >
-          {isApiLoading ? '⏳ Memuat dari API...' : isUsingMock ? '📦 Data Mock' : '🟢 Terhubung ke API'}
-        </div>
-      )}
       <main>
         <HeroSection
+          issues={issues}
           onLaporMasalah={handleLaporMasalah}
           onReportSubmitted={handleReportSubmitted}
           onScrollToMap={handleScrollToMap}

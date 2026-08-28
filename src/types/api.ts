@@ -1,3 +1,44 @@
+export interface ApiCreateReportRequest {
+  category_id: string;
+  title: string;
+  description?: string;
+  latitude: number;
+  longitude: number;
+  address?: string;
+  severity: 'ringan' | 'sedang' | 'parah';
+  primary_photo_url: string;
+  reporter_email?: string;
+}
+
+export interface ApiReportDetailResponse {
+  id: string;
+  title: string;
+  description: string;
+  latitude: number;
+  longitude: number;
+  address: string;
+  severity: 'ringan' | 'sedang' | 'parah';
+  status: string;
+  source: string;
+  category_id: string;
+  category_slug: string;
+  created_at: string;
+}
+
+export interface ApiCategory {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface ApiAnalyzePhotoResponse {
+  title: string;
+  description: string;
+  category: string;
+  severity: 'ringan' | 'sedang' | 'parah';
+  is_relevant: boolean;
+}
+
 export interface WebResponse<T> {
   data: T;
   message: string;

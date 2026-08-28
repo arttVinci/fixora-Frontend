@@ -150,7 +150,7 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
           {[
             { key: 'all' as const, label: 'Semua Data' },
             { key: 'citizen' as const, label: '👤 Laporan Warga' },
-            { key: 'ai_media' as const, label: '🤖 Terdeteksi AI' },
+            { key: 'ai_media' as const, label: '📰 Media Online' },
           ].map((option) => (
             <button
               key={option.key}
