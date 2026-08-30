@@ -1,11 +1,9 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import Navbar from './components/Navbar';
-import HeroSection from './components/landing/HeroSection';
-import MapSection from './components/landing/MapSection';
-import HowItWorksSection from './components/landing/HowItWorksSection';
-import AnalyticsSection from './components/landing/AnalyticsSection';
-import CTASection from './components/landing/CTASection';
-import Footer from './components/Footer';
+import { useState, useMemo, useEffect, useCallback } from 'react';
+import Navbar, { type AppPage } from './components/Navbar';
+import HomePage from './pages/HomePage';
+import MapPage from './pages/MapPage';
+import TransparencyPage from './pages/TransparencyPage';
+import AboutPage from './pages/AboutPage';
 
 import { mockIssueReports } from './services/mockData';
 import { fetchMapReports } from './services/reportApiService';
@@ -19,10 +17,38 @@ const DEFAULT_BOUNDS: MapBounds = {
   maxLng: 107.1,
 };
 
+function getPageFromHash(): AppPage {
+  const hash = window.location.hash.replace('#', '').toLowerCase();
+  if (hash === 'peta' || hash === 'map') return 'peta';
+  if (hash === 'transparansi' || hash === 'anggaran' || hash === 'stats') return 'transparansi';
+  if (hash === 'tentang' || hash === 'about') return 'tentang';
+  return 'home';
+}
+
 function App() {
+  const [page, setPage] = useState<AppPage>(getPageFromHash);
   const [issues, setIssues] = useState<IssueReport[]>(mockIssueReports);
   const [isApiLoading, setIsApiLoading] = useState(true);
   const [isUsingMock, setIsUsingMock] = useState(false);
+
+  // Sync hash changes (e.g. browser back/forward or direct link)
+  useEffect(() => {
+    const handleHashChange = () => {
+      setPage(getPageFromHash());
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
+  // Update hash when page state changes
+  const handleNavigate = (newPage: AppPage) => {
+    setPage(newPage);
+    if (newPage === 'home') {
+      window.history.replaceState(null, '', window.location.pathname);
+    } else {
+      window.location.hash = newPage;
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -53,81 +79,77 @@ function App() {
     }
 
     loadInitialReports();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
-    if (isUsingMock) return;
-    try {
-      const apiReports = await fetchMapReports(bounds);
-      if (apiReports.length > 0) {
-        setIssues(apiReports);
+  const handleBoundsChange = useCallback(
+    async (bounds: MapBounds) => {
+      if (isUsingMock) return;
+      try {
+        const apiReports = await fetchMapReports(bounds);
+        if (apiReports.length > 0) {
+          setIssues(apiReports);
+        }
+      } catch {
+        // Fallback silently if bounds query errors
       }
-    } catch {
-    }
-  }, [isUsingMock]);
-
-  const { totalReports, criticalReports, resolutionRate } = useMemo(() => {
-    const t = issues.length;
-    const c = issues.filter(i => i.status === 'open').length;
-    const r = issues.filter(i => i.status === 'closed' || i.status === 'archived').length;
-    const rate = t > 0 ? Math.round((r / t) * 100) : 0;
-    return { totalReports: t, criticalReports: c, resolutionRate: rate };
-  }, [issues]);
-
-  const mapSectionRef = useRef<HTMLDivElement>(null);
-
-  const handleScrollToMap = () => {
-    mapSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleLaporMasalah = () => {
-    mapSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+    },
+    [isUsingMock]
+  );
 
   const handleReportSubmitted = (newReport: IssueReport) => {
-    setIssues(prev => [...prev, newReport]);
+    setIssues((prev) => [newReport, ...prev]);
+  };
+
+  const handleLaporClick = () => {
+    handleNavigate('peta');
   };
 
   return (
-    <div className="min-h-screen bg-dark-surface">
-      <Navbar />
-      {import.meta.env.DEV && (
-        <div
-          className={`fixed bottom-4 left-4 z-[9999] px-3 py-1.5 rounded-full text-xs font-semibold shadow-lg transition-all ${
-            isApiLoading
-              ? 'bg-amber-500/20 border border-amber-500/50 text-amber-400'
-              : isUsingMock
-              ? 'bg-slate-700/80 border border-slate-600 text-slate-400'
-              : 'bg-green-500/20 border border-green-500/50 text-green-400'
-          }`}
-        >
-          {isApiLoading ? '⏳ Memuat dari API...' : isUsingMock ? '📦 Data Mock' : '🟢 Terhubung ke API'}
-        </div>
-      )}
-      <main>
-        <HeroSection
-          onLaporMasalah={handleLaporMasalah}
-          onReportSubmitted={handleReportSubmitted}
-          onScrollToMap={handleScrollToMap}
-        />
-        <div ref={mapSectionRef}>
-          <MapSection
+    <div className={`bg-[#0D0F0E] text-[#F2F2F0] font-sans antialiased selection:bg-[#2E7D32] selection:text-[#F2F2F0] ${
+      page === 'peta' ? 'h-screen overflow-hidden flex flex-col' : 'min-h-screen'
+    }`}>
+      {/* Universal Header Navbar */}
+      <Navbar
+        activePage={page}
+        onNavigate={handleNavigate}
+        onLaporClick={handleLaporClick}
+      />
+
+
+      {/* Main Routed Page Content */}
+      <main className={`w-full ${page === 'peta' ? 'flex-1 overflow-hidden h-[calc(100vh-64px)]' : ''}`}>
+        {page === 'home' && (
+          <HomePage
+            issues={issues}
+            onLaporMasalah={handleLaporClick}
+            onReportSubmitted={handleReportSubmitted}
+            onNavigateToMap={() => handleNavigate('peta')}
+            onNavigateToTransparency={() => handleNavigate('transparansi')}
+            onNavigateToAbout={() => handleNavigate('tentang')}
+          />
+        )}
+
+        {page === 'peta' && (
+          <MapPage
             issues={issues}
             onAddIssue={handleReportSubmitted}
             onBoundsChange={handleBoundsChange}
+            onNavigateHome={() => handleNavigate('home')}
           />
-        </div>
-        <HowItWorksSection />
-        <AnalyticsSection
-          issues={issues}
-          totalReports={totalReports}
-          criticalReports={criticalReports}
-          resolutionRate={resolutionRate}
-        />
-        <CTASection />
+        )}
+
+        {page === 'transparansi' && (
+          <TransparencyPage
+            issues={issues}
+            onNavigateToMap={() => handleNavigate('peta')}
+          />
+        )}
+
+        {page === 'tentang' && <AboutPage />}
       </main>
-      <Footer />
     </div>
   );
 }
