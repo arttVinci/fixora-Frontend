@@ -1,10 +1,10 @@
 import type { StatusHistory } from '../../types';
 
 const statusConfig = {
-  new: { label: 'New', color: 'bg-yellow-500', textColor: 'text-yellow-400', icon: '🔵', dot: 'bg-yellow-400' },
-  open: { label: 'Open', color: 'bg-orange-500', textColor: 'text-orange-400', icon: '🟠', dot: 'bg-orange-400' },
-  closed: { label: 'Closed', color: 'bg-green-500', textColor: 'text-green-400', icon: '✅', dot: 'bg-green-400' },
-  archived: { label: 'Archived', color: 'bg-slate-500', textColor: 'text-slate-400', icon: '📦', dot: 'bg-slate-400' },
+  new: { label: 'New', color: 'bg-yellow-500', textColor: 'text-yellow-400', dot: 'bg-yellow-400' },
+  open: { label: 'Open', color: 'bg-orange-500', textColor: 'text-orange-400', dot: 'bg-orange-400' },
+  closed: { label: 'Closed', color: 'bg-emerald-500', textColor: 'text-emerald-400', dot: 'bg-emerald-400' },
+  archived: { label: 'Archived', color: 'bg-slate-500', textColor: 'text-[#9BA39E]', dot: 'bg-slate-400' },
 };
 
 function formatDateTime(isoString: string): string {
@@ -23,7 +23,7 @@ export default function StatusHistoryTimeline({ history }: StatusHistoryTimeline
 
   return (
     <div className="mt-4">
-      <h4 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-4">
+      <h4 className="text-sm font-semibold text-[#9BA39E] uppercase tracking-wider mb-4">
         Riwayat Status
       </h4>
       <div className="relative">
@@ -37,16 +37,16 @@ export default function StatusHistoryTimeline({ history }: StatusHistoryTimeline
                   style={{ borderColor: config.dot.replace('bg-', '') }}>
                   <div className={`w-3 h-3 rounded-full ${config.dot}`}></div>
                 </div>
-                {!isLast && <div className="w-px flex-1 bg-white/10 my-1"></div>}
+                {!isLast && <div className="w-px flex-1 bg-[#2A2E2C] my-1"></div>}
               </div>
               <div className={`pb-6 ${isLast ? 'pb-0' : ''}`}>
                 <div className={`text-sm font-bold mb-0.5 ${config.textColor}`}>
                   {config.label}
                 </div>
-                <div className="text-xs text-slate-500 mb-1">
+                <div className="text-xs text-[#9BA39E]/80 mb-1">
                   {formatDateTime(item.timestamp)}
                 </div>
-                <div className="text-sm text-slate-300">
+                <div className="text-sm text-[#F2F2F0]">
                   {item.message}
                 </div>
               </div>

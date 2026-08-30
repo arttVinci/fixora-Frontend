@@ -60,10 +60,10 @@ export default function ReportMapPicker({ onLocationSelect, initialLat = -6.2088
   }, []);
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-white/10" style={{ height: '220px' }}>
+    <div className="rounded-2xl overflow-hidden border border-[#2A2E2C]" style={{ height: '220px' }}>
       <div ref={mapRef} style={{ height: '100%', width: '100%' }} />
-      <div className="px-3 py-1.5 bg-dark-surface/90 text-xs text-slate-400 text-center">
-        📍 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)} — Klik atau seret pin
+      <div className="px-3 py-1.5 bg-[#161918] border-t border-[#2A2E2C] text-xs text-[#9BA39E] text-center">
+        <span className="font-mono text-[#81C784] font-semibold">{coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span> — Klik atau seret pin
       </div>
     </div>
   );

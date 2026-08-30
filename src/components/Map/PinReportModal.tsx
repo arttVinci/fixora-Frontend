@@ -66,27 +66,27 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
 
   return (
     <div className="fixed inset-0 z-[2000] flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0D0F0E]/80 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative w-full sm:max-w-md bg-dark-surface/95 backdrop-blur-2xl border border-white/10 rounded-t-3xl sm:rounded-2xl shadow-2xl animate-float-in overflow-hidden">
-        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/60 to-transparent" />
+      <div className="relative w-full sm:max-w-md bg-[#161918] backdrop-blur-2xl border border-[#2A2E2C] rounded-t-3xl sm:rounded-2xl shadow-2xl animate-float-in overflow-hidden">
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#2E7D32] to-transparent" />
 
-        <div className="px-5 pt-5 pb-4 border-b border-white/10">
+        <div className="px-5 pt-5 pb-4 border-b border-[#2A2E2C]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400">
+              <div className="w-9 h-9 rounded-xl bg-[#1B5E20]/30 border border-[#2E7D32]/50 flex items-center justify-center text-[#81C784]">
                 <MapPinIcon className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="font-heading font-bold text-white text-base">Tandai Lokasi Masalah</h2>
-                <p className="text-slate-400 text-xs mt-0.5">
+                <h2 className="font-heading font-bold text-[#F2F2F0] text-base">Tandai Lokasi Masalah</h2>
+                <p className="text-[#9BA39E] text-xs mt-0.5">
                   {pinLocation.lat.toFixed(5)}, {pinLocation.lng.toFixed(5)}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white transition-all text-sm active:scale-95"
+              className="w-8 h-8 rounded-xl bg-[#0D0F0E] hover:bg-[#1F2422] border border-[#2A2E2C] flex items-center justify-center text-[#9BA39E] hover:text-[#F2F2F0] transition-all text-sm active:scale-95"
             >
               <CloseIcon className="w-4 h-4" />
             </button>
@@ -95,7 +95,7 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
 
         <form onSubmit={handleSubmit} className="px-5 py-4 flex flex-col gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
+            <label className="text-xs font-semibold text-[#9BA39E] uppercase tracking-wider mb-2 block">
               Jenis Masalah
             </label>
             <div className="grid grid-cols-5 gap-1.5">
@@ -106,11 +106,11 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
                   onClick={() => setCategory(cat.id)}
                   className={`flex flex-col items-center gap-1.5 p-2 rounded-xl border text-xs font-medium transition-all active:scale-95 ${
                     category === cat.id
-                      ? 'bg-red-500/20 border-red-500/60 text-white'
-                      : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:text-white'
+                      ? 'bg-[#1B5E20]/30 border-[#2E7D32] text-[#81C784]'
+                      : 'bg-[#0D0F0E] border-[#2A2E2C] text-[#9BA39E] hover:bg-[#1F2422] hover:text-[#F2F2F0]'
                   }`}
                 >
-                  <span className="text-slate-200">{cat.icon}</span>
+                  <span className="text-[#81C784]">{cat.icon}</span>
                   <span className="leading-tight text-center" style={{ fontSize: '10px' }}>{cat.label}</span>
                 </button>
               ))}
@@ -118,29 +118,29 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
-              Judul Laporan <span className="text-red-400">*</span>
+            <label className="text-xs font-semibold text-[#9BA39E] uppercase tracking-wider mb-2 block">
+              Judul Laporan <span className="text-[#81C784]">*</span>
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Contoh: Jalan berlubang depan sekolah"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500/60 focus:bg-white/8 transition-all"
+              className="w-full bg-[#0D0F0E] border border-[#2A2E2C] rounded-xl px-4 py-2.5 text-sm text-[#F2F2F0] placeholder-[#9BA39E]/60 focus:outline-none focus:border-[#4CAF50] transition-all"
               required
             />
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2 block">
-              Deskripsi <span className="text-slate-500 font-normal normal-case">(opsional)</span>
+            <label className="text-xs font-semibold text-[#9BA39E] uppercase tracking-wider mb-2 block">
+              Deskripsi <span className="text-[#9BA39E]/70 font-normal normal-case">(opsional)</span>
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Jelaskan kondisi masalah secara singkat..."
               rows={3}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-red-500/60 focus:bg-white/8 transition-all resize-none"
+              className="w-full bg-[#0D0F0E] border border-[#2A2E2C] rounded-xl px-4 py-2.5 text-sm text-[#F2F2F0] placeholder-[#9BA39E]/60 focus:outline-none focus:border-[#4CAF50] transition-all resize-none"
             />
           </div>
 
@@ -148,14 +148,14 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-sm font-semibold hover:bg-white/10 transition-all active:scale-95"
+              className="flex-1 py-2.5 rounded-xl bg-[#0D0F0E] border border-[#2A2E2C] text-[#9BA39E] text-sm font-semibold hover:bg-[#1F2422] transition-all active:scale-95"
             >
               Batal
             </button>
             <button
               type="submit"
               disabled={!title.trim() || !category}
-              className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 text-white text-sm font-bold shadow-lg shadow-red-500/25 hover:from-red-500 hover:to-rose-500 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              className="flex-1 py-2.5 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-[#F2F2F0] text-sm font-bold shadow-lg shadow-[#2E7D32]/25 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
             >
               <SendIcon className="w-4 h-4" />
               <span>Kirim Laporan</span>

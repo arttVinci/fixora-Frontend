@@ -89,15 +89,15 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-md" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0D0F0E]/80 backdrop-blur-md" onClick={onClose} />
 
-      <div className="relative z-10 w-full max-w-lg bg-slate-950/95 border border-slate-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-slate-100 animate-slide-up">
+      <div className="relative z-10 w-full max-w-lg bg-[#161918] border border-[#2A2E2C] rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh] text-[#F2F2F0] animate-slide-up">
 
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
-          <h2 className="text-xl font-bold text-white">Laporan foto</h2>
+        <div className="px-6 py-4 border-b border-[#2A2E2C] flex items-center justify-between bg-[#0D0F0E]">
+          <h2 className="text-xl font-bold text-[#F2F2F0]">Laporan foto</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-800 transition-all text-sm"
+            className="text-[#9BA39E] hover:text-[#F2F2F0] w-8 h-8 flex items-center justify-center rounded-full hover:bg-[#1F2422] transition-all text-sm"
           >
             <CloseIcon className="w-5 h-5" />
           </button>
@@ -106,32 +106,32 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
         <div className="p-6 overflow-y-auto space-y-6 flex-1">
           {isSubmitted ? (
             <div className="py-12 text-center space-y-3">
-              <div className="w-16 h-16 bg-green-500/20 border border-green-500/40 text-green-400 rounded-full flex items-center justify-center mx-auto animate-bounce">
+              <div className="w-16 h-16 bg-[#1B5E20]/30 border border-[#2E7D32]/50 text-[#81C784] rounded-full flex items-center justify-center mx-auto animate-bounce">
                 <CheckIcon className="w-8 h-8" />
               </div>
-              <h3 className="text-xl font-bold text-white">Laporan Berhasil Terkirim!</h3>
-              <p className="text-sm text-slate-400">
+              <h3 className="text-xl font-bold text-[#F2F2F0]">Laporan Berhasil Terkirim!</h3>
+              <p className="text-sm text-[#9BA39E]">
                 Terima kasih telah berkontribusi. Laporan kamu sedang diverifikasi oleh tim & AI.
               </p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-5">
 
-              <div className="flex items-center gap-2 text-xs font-semibold text-red-400">
-                <span className="w-2 h-2 bg-red-500 rounded-full animate-ping"></span>
-                <span>Didukung oleh AI</span>
+              <div className="flex items-center gap-2 text-xs font-semibold text-[#81C784]">
+                <span className="w-2 h-2 bg-[#2E7D32] rounded-full animate-ping"></span>
+                <span>Didukung oleh Fixora AI</span>
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-200 mb-2">
-                  Foto <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-[#F2F2F0] mb-2">
+                  Foto <span className="text-[#81C784]">*</span>
                 </label>
 
-                <div className="border border-slate-800 bg-slate-900/50 rounded-2xl p-5 text-center space-y-3">
+                <div className="border border-[#2A2E2C] bg-[#0D0F0E] rounded-2xl p-5 text-center space-y-3">
                   {uploadedPhotos.length > 0 && (
                     <div className="flex gap-3 justify-center mb-3 flex-wrap">
                       {uploadedPhotos.map((url, idx) => (
-                        <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-700">
+                        <div key={idx} className="relative w-20 h-20 rounded-xl overflow-hidden border border-[#2A2E2C]">
                           <img src={url} alt={`Upload ${idx}`} className="w-full h-full object-cover" />
                           <button
                             type="button"
@@ -147,15 +147,15 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
 
                   {isAnalyzing ? (
                     <div className="py-4 space-y-2">
-                      <div className="w-8 h-8 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                      <p className="text-xs text-red-400 font-medium flex items-center justify-center gap-1">
+                      <div className="w-8 h-8 border-2 border-[#2E7D32] border-t-transparent rounded-full animate-spin mx-auto"></div>
+                      <p className="text-xs text-[#81C784] font-medium flex items-center justify-center gap-1">
                         <SparklesIcon className="w-4 h-4" />
                         <span>Fixora AI sedang menganalisis foto...</span>
                       </p>
                     </div>
                   ) : (
                     <>
-                      <label className="inline-flex items-center gap-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 px-6 py-3 rounded-2xl text-sm font-bold cursor-pointer transition-all">
+                      <label className="inline-flex items-center gap-2 bg-[#1B5E20]/30 hover:bg-[#2E7D32]/40 text-[#81C784] border border-[#2E7D32]/50 px-6 py-3 rounded-2xl text-sm font-bold cursor-pointer transition-all">
                         <CameraIcon className="w-5 h-5" />
                         <span>Klik untuk mengunggah</span>
                         <input
@@ -166,12 +166,12 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
                         />
                       </label>
 
-                      <div className="text-xs text-slate-400 space-y-1">
+                      <div className="text-xs text-[#9BA39E] space-y-1">
                         <p>atau melalui seret & lepas · {uploadedPhotos.length}/3</p>
-                        <p className="text-slate-500 text-[11px]">Dilarang memotret orang/plat nomor kendaraan.</p>
-                        <p className="text-slate-500 text-[11px] flex items-center justify-center gap-1">
+                        <p className="text-[#9BA39E]/80 text-[11px]">Dilarang memotret orang/plat nomor kendaraan.</p>
+                        <p className="text-[#9BA39E] text-[11px] flex items-center justify-center gap-1">
                           <span>Analisis melalui Fixora AI (Indonesia)</span>
-                          <span className="cursor-pointer text-slate-400">ⓘ</span>
+                          <span className="cursor-pointer text-[#9BA39E]">ⓘ</span>
                         </p>
                       </div>
 
@@ -179,7 +179,7 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
                         <button
                           type="button"
                           onClick={handleDemoPhotoSelect}
-                          className="text-xs text-red-400 hover:text-red-300 underline font-medium pt-1 block mx-auto"
+                          className="text-xs text-[#81C784] hover:text-[#4CAF50] underline font-medium pt-1 block mx-auto"
                         >
                           (Atau klik di sini untuk simulasi contoh foto jalan rusak)
                         </button>
@@ -190,14 +190,14 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-200 mb-2">
-                  kategori <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-[#F2F2F0] mb-2">
+                  kategori <span className="text-[#81C784]">*</span>
                 </label>
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                   required
-                  className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-colors cursor-pointer"
+                  className="w-full bg-[#0D0F0E] border border-[#2A2E2C] text-[#F2F2F0] text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[#4CAF50] transition-colors cursor-pointer"
                 >
                   <option value="">Pilih kategori</option>
                   {categories.map((c) => (
@@ -207,10 +207,10 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-200 mb-1">
-                  Keterangan <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-[#F2F2F0] mb-1">
+                  Keterangan <span className="text-[#81C784]">*</span>
                 </label>
-                <p className="text-xs text-slate-400 mb-2">
+                <p className="text-xs text-[#9BA39E] mb-2">
                   Ini dihasilkan secara otomatis dari foto. Anda dapat menyesuaikan teksnya.
                 </p>
                 <textarea
@@ -219,19 +219,19 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Teks dihasilkan dari foto..."
                   required
-                  className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-xl p-3 focus:outline-none focus:border-red-500 transition-colors resize-none placeholder-slate-500"
+                  className="w-full bg-[#0D0F0E] border border-[#2A2E2C] text-[#F2F2F0] text-sm rounded-xl p-3 focus:outline-none focus:border-[#4CAF50] transition-colors resize-none placeholder-[#9BA39E]/60"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-200 mb-1">
-                  Lokasi <span className="text-red-500">*</span>
+                <label className="block text-sm font-semibold text-[#F2F2F0] mb-1">
+                  Lokasi <span className="text-[#81C784]">*</span>
                 </label>
-                <p className="text-xs text-slate-400 mb-2">
+                <p className="text-xs text-[#9BA39E] mb-2">
                   Masukkan alamat atau gunakan lokasi Anda saat ini.
                 </p>
                 <div className="relative">
-                  <span className="absolute left-3.5 top-3.5 text-slate-500">
+                  <span className="absolute left-3.5 top-3.5 text-[#9BA39E]">
                     <MapPinIcon className="w-4 h-4" />
                   </span>
                   <input
@@ -240,13 +240,13 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="Temukan lokasi..."
                     required
-                    className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-xl pl-10 pr-10 py-3 focus:outline-none focus:border-red-500 transition-colors placeholder-slate-500"
+                    className="w-full bg-[#0D0F0E] border border-[#2A2E2C] text-[#F2F2F0] text-sm rounded-xl pl-10 pr-10 py-3 focus:outline-none focus:border-[#4CAF50] transition-colors placeholder-[#9BA39E]/60"
                   />
                   <button
                     type="button"
                     onClick={handleGetLocation}
                     title="Gunakan lokasi saya"
-                    className="absolute right-3 top-3 text-slate-400 hover:text-red-400 p-1"
+                    className="absolute right-3 top-3 text-[#9BA39E] hover:text-[#81C784] p-1"
                   >
                     <LocationTargetIcon className="w-4 h-4" />
                   </button>
@@ -254,10 +254,10 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-slate-200 mb-1">
+                <label className="block text-sm font-semibold text-[#F2F2F0] mb-1">
                   e-mail
                 </label>
-                <p className="text-xs text-slate-400 mb-2">
+                <p className="text-xs text-[#9BA39E] mb-2">
                   Alamat email kontak Anda
                 </p>
                 <input
@@ -265,20 +265,20 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Masukkan alamat email Anda"
-                  className="w-full bg-slate-900 border border-slate-800 text-slate-200 text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-red-500 transition-colors placeholder-slate-500"
+                  className="w-full bg-[#0D0F0E] border border-[#2A2E2C] text-[#F2F2F0] text-sm rounded-xl px-4 py-3 focus:outline-none focus:border-[#4CAF50] transition-colors placeholder-[#9BA39E]/60"
                 />
               </div>
 
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-[#9BA39E]">
                 Anda dapat menemukan informasi tentang perlindungan data di sini.{' '}
-                <a href="#" className="text-red-400 underline font-medium hover:text-red-300">
+                <a href="#" className="text-[#81C784] underline font-medium hover:text-[#4CAF50]">
                   Di Sini
                 </a>
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 rounded-xl shadow-lg transition-all text-base transform hover:scale-[1.01] active:scale-[0.99]"
+                className="w-full bg-[#2E7D32] hover:bg-[#1B5E20] text-[#F2F2F0] font-bold py-3.5 rounded-xl shadow-lg transition-all text-base transform hover:scale-[1.01] active:scale-[0.99]"
               >
                 Kirim pesan
               </button>
