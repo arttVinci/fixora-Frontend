@@ -1,502 +1,911 @@
-import { useState, useEffect, useRef } from 'react';
-import type { IssueCategory, SeverityLevel, ReportSubmission, IssueReport } from '../../types';
-import { simulateCvClassifier, submitReport, getGreeting } from '../../services/reportService';
-import ReportMapPicker from '../ReportMapPicker';
+import { useState, useRef, useEffect } from "react";
+import type {
+  IssueCategory,
+  SeverityLevel,
+  ReportSubmission,
+  IssueReport,
+} from "../../types";
 import {
-  SparklesIcon,
+  simulateCvClassifier,
+  submitReport,
+  getGreeting,
+} from "../../services/reportService";
+import ReportMapPicker from "../ReportMapPicker";
+import {
+  AiSparkleIcon,
+  SendIcon,
   CameraIcon,
   MapPinIcon,
   GpsIcon,
   CheckIcon,
   EditIcon,
   PlusIcon,
-  ArrowRightIcon,
-  SendIcon,
-} from '../Icons';
+  CloseIcon,
+  MapIcon,
+  ReportIcon,
+} from "../Icons";
 
 type Step =
-  | 'greeting'
-  | 'name'
-  | 'email'
-  | 'photo'
-  | 'classifying'
-  | 'confirm_ai'
-  | 'manual_category'
-  | 'location'
-  | 'map_picker'
-  | 'description'
-  | 'submitting'
-  | 'done';
+  | "idle" // Fase 1: Greeting & Entry Point
+  | "photo_prompt" // Fase 2: Upload Foto Prompt
+  | "classifying" // Fase 2: CV Classifier Analyzing
+  | "review_data" // Fase 3: Review & Edit Data (Human-in-the-loop)
+  | "edit_data" // Fase 3: Inline Form Editor
+  | "location_verify" // Fase 4: Deteksi & Verifikasi Lokasi
+  | "map_picker" // Fase 4: Geser Pin di Peta
+  | "email_optional" // Fase 5: Identitas Pelapor (Opsional)
+  | "submitting" // Fase 6: Submit Process
+  | "done"; // Fase 6: Konfirmasi & Sukses
 
-type ChatMessage = {
-  from: 'ai' | 'user';
-  text: string;
-  type?: 'normal' | 'success' | 'error' | 'ai_result';
-};
-
-const CATEGORY_LABELS: Record<IssueCategory, string> = {
-  jalan: 'Jalan Rusak',
-  jembatan: 'Jembatan',
-  sampah: 'Sampah',
-  bangunan: 'Bangunan',
-  drainase: 'Drainase',
-};
-
-const SEVERITY_LABELS: Record<SeverityLevel, string> = {
-  rendah: 'Rendah',
-  sedang: 'Sedang',
-  tinggi: 'Tinggi',
-  kritis: 'Kritis',
-};
+interface ChatMessage {
+  id: string;
+  sender: "ai" | "user";
+  text?: string;
+  image?: string;
+  step?: Step;
+}
 
 type InlineHeroAiCardProps = {
   onReportSubmitted?: (report: IssueReport) => void;
   onScrollToMap?: () => void;
 };
 
-const emptyReport = (): Partial<ReportSubmission> => ({
-  locationMethod: null,
-});
+const CATEGORY_LABELS: Record<IssueCategory, string> = {
+  jalan: "Jalan Rusak",
+  jembatan: "Jembatan",
+  sampah: "Sampah",
+  bangunan: "Bangunan",
+  drainase: "Drainase",
+};
 
-export default function InlineHeroAiCard({ onReportSubmitted, onScrollToMap }: InlineHeroAiCardProps) {
-  const [step, setStep] = useState<Step>('greeting');
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [inputValue, setInputValue] = useState('');
-  const [report, setReport] = useState<Partial<ReportSubmission>>(emptyReport());
+const SEVERITY_LABELS: Record<SeverityLevel, string> = {
+  rendah: "Rendah",
+  sedang: "Sedang",
+  tinggi: "Tinggi",
+  kritis: "Kritis",
+};
+
+const SEVERITY_COLORS: Record<
+  SeverityLevel,
+  { bg: string; text: string; border: string }
+> = {
+  rendah: {
+    bg: "bg-emerald-500/20",
+    text: "text-emerald-300",
+    border: "border-emerald-500/30",
+  },
+  sedang: {
+    bg: "bg-blue-500/20",
+    text: "text-blue-300",
+    border: "border-blue-500/30",
+  },
+  tinggi: {
+    bg: "bg-amber-500/20",
+    text: "text-amber-300",
+    border: "border-amber-500/30",
+  },
+  kritis: {
+    bg: "bg-rose-500/20",
+    text: "text-rose-300",
+    border: "border-rose-500/30",
+  },
+};
+
+interface DraftData {
+  title: string;
+  description: string;
+  category: IssueCategory;
+  severity: SeverityLevel;
+  confidence: number;
+}
+
+export default function InlineHeroAiCard({
+  onReportSubmitted,
+  onScrollToMap,
+}: InlineHeroAiCardProps) {
+  const [step, setStep] = useState<Step>("idle");
+  const [inputValue, setInputValue] = useState("");
   const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [aiResult, setAiResult] = useState<{ category: IssueCategory; severity: SeverityLevel; confidence: number; description: string } | null>(null);
-  const [reportId, setReportId] = useState<string | null>(null);
+  const [draft, setDraft] = useState<DraftData>({
+    title: "Laporan Kerusakan Fasilitas Publik",
+    description: "Kerusakan infrastruktur publik terdeteksi.",
+    category: "jalan",
+    severity: "sedang",
+    confidence: 90,
+  });
+
+  // Location state - silently captured in background
+  const [latitude, setLatitude] = useState<number>(-6.2088);
+  const [longitude, setLongitude] = useState<number>(106.8456);
+  const [locationLabel, setLocationLabel] = useState<string>(
+    "Menteng, Jakarta Pusat",
+  );
+  const [, setReporterEmail] = useState<string>("");
+  const [submittedReport, setSubmittedReport] = useState<IssueReport | null>(
+    null,
+  );
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-  const isInitialMount = useRef(true);
-  const greeting = getGreeting();
+  const prevMessagesCountRef = useRef<number>(1);
 
+  // Chat message stream history
+  const [messages, setMessages] = useState<ChatMessage[]>([
+    {
+      id: "initial-welcome",
+      sender: "ai",
+      text: `${getGreeting()}! Ada yang bisa saya bantu hari ini? Anda bisa melihat peta laporan terkini atau melaporkan masalah infrastruktur di sekitar Anda.`,
+      step: "idle",
+    },
+  ]);
+
+  // Background GPS Acquisition on mount (Fase 4 background silently)
   useEffect(() => {
-    setMessages([
-      { from: 'ai', text: `${greeting}! Saya AI Fixora. Ada kerusakan jalan, jembatan, atau fasilitas umum di sekitarmu? Tuliskan di sini atau upload foto langsung.` }
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setLatitude(lat);
+          setLongitude(lng);
+          setLocationLabel(
+            `Koordinat GPS (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
+          );
+        },
+        () => {
+          setLatitude(-6.2088);
+          setLongitude(106.8456);
+          setLocationLabel("Jakarta Pusat (Default GPS)");
+        },
+        { timeout: 8000, enableHighAccuracy: true },
+      );
+    }
+  }, []);
+
+  // Native smooth scroll to bottom ONLY when a new message is appended
+  useEffect(() => {
+    if (messages.length > prevMessagesCountRef.current) {
+      prevMessagesCountRef.current = messages.length;
+      if (chatContainerRef.current) {
+        chatContainerRef.current.scrollTo({
+          top: chatContainerRef.current.scrollHeight,
+          behavior: "smooth",
+        });
+      }
+    } else {
+      prevMessagesCountRef.current = messages.length;
+    }
+  }, [messages.length]);
+
+  // FASE 1: Mulai Melapor
+  const handleStartReporting = () => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: "Saya ingin melapor masalah infrastruktur",
+      },
+      {
+        id: `ai-${Date.now() + 1}`,
+        sender: "ai",
+        text: "Nanti foto Anda akan dianalisis AI, lokasi dideteksi otomatis, lalu diverifikasi sebelum tayang.\n\nSilakan masukkan atau pilih foto masalah infrastruktur:",
+        step: "photo_prompt",
+      },
     ]);
-  }, [greeting]);
-
-  useEffect(() => {
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  const addAiMessage = (text: string, type: ChatMessage['type'] = 'normal') =>
-    setMessages(prev => [...prev, { from: 'ai', text, type }]);
-
-  const addUserMessage = (text: string) =>
-    setMessages(prev => [...prev, { from: 'user', text }]);
-
-  const handleStartReport = () => {
-    addUserMessage('Buat Laporan Baru 🚀');
-    setTimeout(() => {
-      addAiMessage('Siap! Siapa nama kamu? (akan disimpan secara internal)');
-      setStep('name');
-    }, 300);
+    setStep("photo_prompt");
   };
 
-  const handleNameSubmit = () => {
-    const name = inputValue.trim();
-    if (!name) return;
-    addUserMessage(name);
-    setReport(r => ({ ...r, reporterName: name }));
-    setInputValue('');
-    setTimeout(() => {
-      addAiMessage(`Halo ${name}! Masukkan email kamu untuk menerima pembaruan status laporan:`);
-      setStep('email');
-    }, 300);
+  // FASE 1: Handle text input on idle
+  const handleInitialTextQuery = (text: string) => {
+    setInputValue("");
+    setDraft((prev) => ({
+      ...prev,
+      description: text,
+      title: `Laporan: ${text.slice(0, 35)}...`,
+    }));
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text,
+      },
+      {
+        id: `ai-${Date.now() + 1}`,
+        sender: "ai",
+        text: `Baik, saya catat deskripsi awal: "${text}".\n\nNanti foto Anda akan dianalisis AI, lokasi dideteksi otomatis, lalu diverifikasi sebelum tayang.\n\nSilakan upload foto masalahnya:`,
+        step: "photo_prompt",
+      },
+    ]);
+    setStep("photo_prompt");
   };
 
-  const handleEmailSubmit = () => {
-    const email = inputValue.trim();
-    if (!email || !email.includes('@')) {
-      addAiMessage('⚠️ Format email tidak valid. Coba lagi ya!', 'error');
-      setInputValue('');
-      return;
-    }
-    addUserMessage(email);
-    setReport(r => ({ ...r, reporterEmail: email }));
-    setInputValue('');
-    setTimeout(() => {
-      addAiMessage('📸 Mantap! Sekarang pilih foto kerusakan. Klik tombol 📷 di bawah ini:');
-      setStep('photo');
-    }, 300);
-  };
-
+  // FASE 2: Handle Photo Upload & CV Classifier (US-06)
   const handlePhotoUpload = async (file: File) => {
     const previewUrl = URL.createObjectURL(file);
     setImagePreview(previewUrl);
-    addUserMessage(`📎 ${file.name}`);
-    setReport(r => ({ ...r, imageFile: file, imagePreviewUrl: previewUrl }));
-    setTimeout(() => {
-      addAiMessage('⚙️ Menganalisis foto dengan AI Vision Classifier…');
-      setStep('classifying');
-    }, 300);
+    setStep("classifying");
+
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: `Mengunggah foto: ${file.name}`,
+        image: previewUrl,
+      },
+      {
+        id: "ai-classifying",
+        sender: "ai",
+        text: "Menganalisis foto dengan Fixora AI Vision Classifier…",
+        step: "classifying",
+      },
+    ]);
+
     try {
       const result = await simulateCvClassifier(file);
-      setAiResult(result);
-      setReport(r => ({ ...r, aiCategory: result.category, aiSeverity: result.severity, finalCategory: result.category, finalSeverity: result.severity }));
-      setStep('confirm_ai');
-      addAiMessage(
-        `🤖 Hasil Analisis AI: **${result.description}** (Kategori: ${result.category.toUpperCase()}, Keparahan: ${result.severity.toUpperCase()}, Kepercayaan: ${result.confidence}%). Apakah sesuai?`,
-        'ai_result'
-      );
+      const categoryTitles: Record<IssueCategory, string> = {
+        jalan: "Jalan Rusak / Berlubang",
+        jembatan: "Kerusakan Struktur Jembatan",
+        sampah: "Penumpukan Sampah Liar",
+        bangunan: "Kerusakan Fasilitas Bangunan",
+        drainase: "Saluran Drainase Tersumbat",
+      };
+
+      const generatedTitle =
+        categoryTitles[result.category] || `Laporan ${result.category}`;
+      const generatedDesc = `Terdeteksi ${result.description} dengan tingkat keparahan ${result.severity}.`;
+
+      setDraft({
+        title: generatedTitle,
+        description: generatedDesc,
+        category: result.category,
+        severity: result.severity,
+        confidence: result.confidence,
+      });
+
+      setStep("review_data");
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== "ai-classifying"),
+        {
+          id: `ai-${Date.now()}`,
+          sender: "ai",
+          text: `Hasil Analisis AI Selesai (${result.confidence}% akurasi). Silakan periksa draft data di bawah ini:`,
+          step: "review_data",
+        },
+      ]);
     } catch {
-      addAiMessage('⚠️ Gagal menganalisis foto. Silakan pilih kategori secara manual.', 'error');
-      setStep('manual_category');
+      setStep("review_data");
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== "ai-classifying"),
+        {
+          id: `ai-${Date.now()}`,
+          sender: "ai",
+          text: "Analisis AI otomatis mengalami kendala. Silakan tinjau dan sesuaikan kategori secara manual:",
+          step: "review_data",
+        },
+      ]);
     }
   };
 
-  const handleConfirmAi = (accepted: boolean) => {
-    if (accepted) {
-      addUserMessage('Ya, sesuai ✓');
-      setStep('location');
-      setTimeout(() => addAiMessage('Bagaimana lokasi masalah ini ditentukan?'), 300);
-    } else {
-      addUserMessage('Tidak, koreksi kategori');
-      setStep('manual_category');
-      setTimeout(() => addAiMessage('Silakan pilih kategori dan tingkat keparahan yang paling tepat:'), 300);
-    }
-  };
-
-  const handleManualCategory = (category: IssueCategory, severity: SeverityLevel) => {
-    addUserMessage(`Kategori: ${CATEGORY_LABELS[category]}, Keparahan: ${SEVERITY_LABELS[severity]}`);
-    setReport(r => ({ ...r, finalCategory: category, finalSeverity: severity }));
-    setStep('location');
-    setTimeout(() => addAiMessage('Bagaimana lokasi masalah ini ditentukan?'), 300);
-  };
-
-  const handleGpsLocation = () => {
-    addUserMessage('Gunakan GPS Otomatis 📡');
-    if (!navigator.geolocation) {
-      addAiMessage('⚠️ Geolocation tidak didukung di browser ini. Gunakan pin manual.', 'error');
-      setStep('map_picker');
-      return;
-    }
-    addAiMessage('Mengambil koordinat GPS…');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        setReport(r => ({ ...r, latitude: lat, longitude: lng, locationMethod: 'gps', locationLabel: `GPS: ${lat.toFixed(4)}, ${lng.toFixed(4)}` }));
-        addAiMessage(`📍 Lokasi GPS terdeteksi: (${lat.toFixed(4)}, ${lng.toFixed(4)})`, 'success');
-        setStep('description');
-        setTimeout(() => addAiMessage('Ada catatan atau deskripsi tambahan? (opsional, tekan Enter untuk lewati)'), 300);
+  // FASE 3: Konfirmasi Data Hasil Review
+  const handleConfirmData = () => {
+    setStep("location_verify");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: "Data laporan sudah benar",
       },
-      () => {
-        addAiMessage('⚠️ Gagal mendapatkan GPS. Silakan tentukan lokasi di peta.', 'error');
-        setStep('map_picker');
-      }
+      {
+        id: `ai-${Date.now() + 1}`,
+        sender: "ai",
+        text: `Titik lokasi Anda saat ini terdeteksi di:\n**${locationLabel}**\n\nApakah titik lokasi ini sudah sesuai?`,
+        step: "location_verify",
+      },
+    ]);
+  };
+
+  // FASE 4: Konfirmasi Lokasi
+  const handleConfirmLocation = () => {
+    setStep("email_optional");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: "Lokasi sudah sesuai",
+      },
+      {
+        id: `ai-${Date.now() + 1}`,
+        sender: "ai",
+        text: "Apakah Anda ingin mengisi email untuk konfirmasi & update penanganan laporan ini? (Opsional, laporan tetap dapat dikirim secara anonim)",
+        step: "email_optional",
+      },
+    ]);
+  };
+
+  // FASE 4: Buka Map Picker
+  const handleOpenMapPicker = () => {
+    setStep("map_picker");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: "Saya ingin geser titik di peta",
+      },
+      {
+        id: `ai-${Date.now() + 1}`,
+        sender: "ai",
+        text: "Silakan geser pin atau klik pada peta interaktif untuk menentukan titik lokasi yang tepat:",
+        step: "map_picker",
+      },
+    ]);
+  };
+
+  const handleMapLocationSelected = (
+    lat: number,
+    lng: number,
+    label: string,
+  ) => {
+    setLatitude(lat);
+    setLongitude(lng);
+    setLocationLabel(
+      label || `Koordinat (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
     );
   };
 
-  const handleManualPin = () => {
-    addUserMessage('Pin lokasi manual di peta 🗺️');
-    setStep('map_picker');
-    setTimeout(() => addAiMessage('Pilih atau seret titik lokasi pada peta di bawah ini:'), 300);
+  const handleMapLocationConfirm = () => {
+    setStep("email_optional");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: `Titik dipilih: ${locationLabel}`,
+      },
+      {
+        id: `ai-${Date.now() + 1}`,
+        sender: "ai",
+        text: "Apakah Anda ingin mengisi email untuk konfirmasi & update penanganan laporan ini? (Opsional, laporan tetap dapat dikirim secara anonim)",
+        step: "email_optional",
+      },
+    ]);
   };
 
-  const handleMapConfirmButton = () => {
-    addUserMessage(`📍 Lokasi dipilih: ${report.locationLabel || 'Peta Manual'}`);
-    setStep('description');
-    setTimeout(() => addAiMessage('Ada catatan atau deskripsi tambahan? (opsional, tekan Enter untuk lewati)'), 300);
+  // FASE 5 & 6: Submit Final Report
+  const handleSubmitWithEmail = (email: string) => {
+    setReporterEmail(email);
+    setInputValue("");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: `Email konfirmasi: ${email}`,
+      },
+    ]);
+    finalizeReportSubmission(email);
   };
 
-  const handleDescriptionSubmit = async () => {
-    const desc = inputValue.trim();
-    addUserMessage(desc || '(tanpa keterangan tambahan)');
-    setReport(r => ({ ...r, description: desc }));
-    setInputValue('');
-    setStep('submitting');
-    addAiMessage('📤 Mengirim laporan ke sistem Fixora…');
-    await new Promise(res => setTimeout(res, 1000));
+  const handleSkipEmail = () => {
+    setReporterEmail("");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `user-${Date.now()}`,
+        sender: "user",
+        text: "Kirim laporan secara anonim (Lewati email)",
+      },
+    ]);
+    finalizeReportSubmission("");
+  };
+
+  const finalizeReportSubmission = async (email: string) => {
+    setStep("submitting");
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: "ai-submitting",
+        sender: "ai",
+        text: "Mengirim laporan dan mendaftarkan ke sistem verifikasi Fixora…",
+        step: "submitting",
+      },
+    ]);
+
+    await new Promise((res) => setTimeout(res, 900));
+
     try {
-      const newReport = submitReport({
-        ...report,
-        reporterName: report.reporterName || 'Warga Anonim',
-        reporterEmail: report.reporterEmail || 'warga@fixora.id',
-        finalCategory: report.finalCategory || 'jalan',
-        finalSeverity: report.finalSeverity || 'sedang',
-        locationMethod: report.locationMethod || 'manual',
-        description: desc,
-      });
-      setReportId(newReport.id);
-      setStep('done');
-      addAiMessage(`🎉 Laporan #${newReport.id} berhasil terkirim dan telah ditambahkan ke Peta Interaktif! Terima kasih telah berpartisipasi.`, 'success');
-      if (onReportSubmitted) onReportSubmitted(newReport);
+      const submissionData: ReportSubmission = {
+        reporterName: email ? email.split("@")[0] : "Warga Anonim",
+        reporterEmail: email || "anonim@fixora.id",
+        imagePreviewUrl: imagePreview || undefined,
+        finalCategory: draft.category,
+        finalSeverity: draft.severity,
+        aiCategory: draft.category,
+        aiSeverity: draft.severity,
+        latitude: latitude,
+        longitude: longitude,
+        locationLabel: locationLabel,
+        locationMethod: "gps",
+        description: `${draft.title}. ${draft.description}`,
+      };
+
+      const newReport = submitReport(submissionData);
+      setSubmittedReport(newReport);
+      setStep("done");
+
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== "ai-submitting"),
+        {
+          id: `ai-${Date.now()}`,
+          sender: "ai",
+          text: `Terima kasih atas laporan Anda!\n\nLaporan Anda berhasil dicatat dengan ID **#${newReport.id}** (Status: Menunggu Verifikasi). Laporan akan segera tayang di peta publik setelah diverifikasi oleh tim.`,
+          step: "done",
+        },
+      ]);
+
+      if (onReportSubmitted) {
+        onReportSubmitted(newReport);
+      }
     } catch {
-      addAiMessage('⚠️ Gagal mengirim laporan. Coba lagi.', 'error');
-      setStep('description');
+      setStep("email_optional");
+      setMessages((prev) => [
+        ...prev.filter((m) => m.id !== "ai-submitting"),
+        {
+          id: `ai-${Date.now()}`,
+          sender: "ai",
+          text: "Gagal mengirim laporan ke server. Silakan coba submit kembali.",
+          step: "email_optional",
+        },
+      ]);
     }
   };
 
-  const handleReset = () => {
-    setStep('greeting');
-    setReport(emptyReport());
+  // Reset flow
+  const handleResetFlow = () => {
+    setStep("idle");
+    setInputValue("");
     setImagePreview(null);
-    setAiResult(null);
-    setReportId(null);
-    setInputValue('');
-    setMessages([{ from: 'ai', text: `👋 Ada laporan infrastruktur lain yang ingin dibuat?` }]);
+    setSubmittedReport(null);
+    setMessages([
+      {
+        id: "initial-welcome",
+        sender: "ai",
+        text: `${getGreeting()}! Ada yang bisa saya bantu hari ini? Anda bisa melihat peta laporan terkini atau melaporkan masalah infrastruktur di sekitar Anda.`,
+        step: "idle",
+      },
+    ]);
   };
 
-  const handleInputFormSubmit = (e: React.FormEvent) => {
+  // Handle Bottom Form Submit
+  const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim()) return;
+    const val = inputValue.trim();
+    if (!val) return;
 
-    if (step === 'greeting') {
-      const text = inputValue.trim();
-      setInputValue('');
-      addUserMessage(text);
-      setReport(r => ({ ...r, description: text }));
-      setTimeout(() => {
-        addAiMessage('Siap! Masukkan nama kamu dulu ya:');
-        setStep('name');
-      }, 300);
-    } else if (step === 'name') {
-      handleNameSubmit();
-    } else if (step === 'email') {
-      handleEmailSubmit();
-    } else if (step === 'description') {
-      handleDescriptionSubmit();
+    if (step === "idle") {
+      handleInitialTextQuery(val);
+    } else if (step === "email_optional") {
+      if (val.includes("@")) {
+        handleSubmitWithEmail(val);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `ai-${Date.now()}`,
+            sender: "ai",
+            text: "Format email kurang tepat. Masukkan email yang benar atau klik tombol 'Lewati (Kirim Anonim)'.",
+            step: "email_optional",
+          },
+        ]);
+      }
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `user-${Date.now()}`,
+          sender: "user",
+          text: val,
+        },
+      ]);
+      setInputValue("");
     }
   };
 
-  const isInputStep = step === 'greeting' || step === 'name' || step === 'email' || step === 'description';
+  const isChatStarted = messages.length > 1 || step !== "idle";
 
   return (
-    <div className="relative z-10 w-full max-w-lg bg-slate-950/90 backdrop-blur-2xl border border-white/15 rounded-2xl shadow-2xl ring-1 ring-primary-500/30 overflow-hidden flex flex-col text-left">
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-primary-500 via-rose-500 to-amber-500 rounded-t-2xl" />
+    <div
+      className={`relative w-full max-w-[620px] bg-[#161918]/60 text-left rounded-2xl sm:rounded-3xl border border-[#2A2E2C] shadow-2xl backdrop-blur-md overflow-hidden font-sans select-none flex flex-col justify-between transition-[height] duration-300 ease-out ${
+        isChatStarted ? "h-[490px] sm:h-[530px]" : "h-auto"
+      }`}
+    >
+      {/* Hidden File Input for Photo Upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) handlePhotoUpload(file);
+        }}
+      />
 
-      {/* Header */}
-      <div className="px-4 sm:px-5 py-3 border-b border-white/10 bg-slate-900/80 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-primary-500/20 border border-primary-500/40 flex items-center justify-center text-primary-400 shadow-glow">
-            <SparklesIcon className="w-4 h-4" />
-          </div>
-          <div>
-            <h3 className="font-heading font-bold text-white text-sm">Fixora AI Assistant</h3>
-            <p className="text-[10px] text-slate-400">Asisten Pelaporan Interaktif Real-time</p>
-          </div>
-        </div>
-        <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-          Online
-        </span>
-      </div>
+      {/* Chat Messages Body - Pure native performant scroll */}
+      <div
+        ref={chatContainerRef}
+        className={`relative z-10 space-y-3.5 overflow-y-auto overscroll-contain scrollbar-thin ${
+          isChatStarted
+            ? "flex-1 px-3.5 sm:px-5 py-4 sm:py-5"
+            : "px-3.5 sm:px-4 py-3.5 sm:py-4"
+        }`}
+        style={{ willChange: "scroll-position" }}
+      >
+        {messages.map((msg, idx) => {
+          const isLatest = idx === messages.length - 1;
 
-      {/* Chat Messages Body */}
-      <div ref={chatContainerRef} className="p-4 sm:p-5 flex-1 overflow-y-auto space-y-3 max-h-[340px] sm:max-h-[380px] scrollbar-thin">
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex items-start gap-2.5 ${msg.from === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.from === 'ai' && (
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary-500 to-rose-600 flex-shrink-0 flex items-center justify-center text-white shadow-md mt-0.5">
-                <SparklesIcon className="w-3.5 h-3.5" />
+          if (msg.sender === "user") {
+            return (
+              <div key={msg.id} className="flex justify-end">
+                <div className="max-w-[86%] sm:max-w-[82%] bg-[#1B5E20]/30 text-[#F2F2F0] px-4 py-2.5 sm:px-4.5 sm:py-3 rounded-2xl rounded-tr-md border border-[#2E7D32]/45 text-xs sm:text-[13.5px] leading-relaxed shadow-sm">
+                  <p>{msg.text}</p>
+                  {msg.image && (
+                    <div className="mt-2.5">
+                      <img
+                        src={msg.image}
+                        alt="Foto upload"
+                        className="w-24 h-24 sm:w-28 sm:h-28 object-cover rounded-xl border border-[#2E7D32]/40 shadow-sm"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-            <div
-              className={`max-w-[85%] px-3.5 py-2.5 rounded-2xl text-xs sm:text-sm leading-relaxed shadow-sm ${
-                msg.from === 'user'
-                  ? 'bg-primary-600 text-white rounded-tr-xs'
-                  : msg.type === 'error'
-                  ? 'bg-red-500/20 border border-red-500/40 text-red-200 rounded-tl-xs'
-                  : msg.type === 'success'
-                  ? 'bg-green-500/20 border border-green-500/40 text-green-200 rounded-tl-xs'
-                  : 'bg-slate-900/90 border border-white/10 text-slate-200 rounded-tl-xs'
-              }`}
-            >
-              {msg.text}
+            );
+          }
+
+          // AI Message
+          return (
+            <div key={msg.id} className="flex items-start gap-2.5 sm:gap-3">
+              {/* AI Assistant Badge */}
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-[#1B5E20]/40 border border-[#2E7D32]/60 flex items-center justify-center flex-shrink-0 shadow-md mt-0.5">
+                <AiSparkleIcon className="w-5 h-4.5 text-[#81C784]" />
+              </div>
+
+              {/* AI Text Content Bubble */}
+              <div className="max-w-[88%] sm:max-w-[85%] bg-[#0D0F0E]/55 border border-[#2A2E2C] text-[#F2F2F0] px-4 py-3.5 sm:px-4.5 sm:py-3.5 rounded-2xl rounded-tl-md text-xs sm:text-[13.5px] leading-relaxed shadow-sm">
+                <p className="whitespace-pre-line leading-relaxed">{msg.text}</p>
+
+                {/* ----------------- FASE 1: ENTRY POINT ACTIONS ----------------- */}
+                {msg.step === "idle" && isLatest && step === "idle" && (
+                  <div className="flex items-center gap-2.5 mt-3.5 pt-1">
+                    <button
+                      onClick={handleStartReporting}
+                      className="bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/60 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <ReportIcon className="w-4 h-4" />
+                      <span>Melapor</span>
+                    </button>
+                    <button
+                      onClick={onScrollToMap}
+                      className="text-[#9BA39E] hover:text-[#F2F2F0] text-xs font-medium px-2 py-1.5 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <MapIcon className="w-4 h-4" />
+                      <span>Lihat Terkini</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* ----------------- FASE 2: UPLOAD FOTO PROMPT ----------------- */}
+                {msg.step === "photo_prompt" &&
+                  isLatest &&
+                  step === "photo_prompt" && (
+                    <div className="mt-3.5">
+                      <button
+                        onClick={() => fileInputRef.current?.click()}
+                        className="bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/60 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                      >
+                        <CameraIcon className="w-4 h-4" />
+                        <span>Pilih / Ambil Foto</span>
+                      </button>
+                    </div>
+                  )}
+
+                {/* ----------------- FASE 3: REVIEW DATA (HUMAN-IN-THE-LOOP) ----------------- */}
+                {msg.step === "review_data" &&
+                  isLatest &&
+                  step === "review_data" && (
+                    <div className="mt-3.5 space-y-3">
+                      {/* Structured Form Card */}
+                      <div className="p-3 sm:p-3.5 rounded-xl bg-[#0D0F0E]/70 border border-[#2E7D32]/35 space-y-2 text-xs">
+                        <div className="flex items-center justify-between gap-2 border-b border-[#2A2E2C] pb-2">
+                          <span className="font-semibold text-[#F2F2F0] text-[13px]">
+                            {draft.title}
+                          </span>
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#2E7D32]/25 text-[#81C784] font-mono border border-[#2E7D32]/40">
+                            {draft.confidence}% AI
+                          </span>
+                        </div>
+
+                        <p className="text-[#9BA39E] text-xs leading-relaxed">
+                          {draft.description}
+                        </p>
+
+                        <div className="flex flex-wrap items-center gap-2 pt-1">
+                          <span className="px-2.5 py-1 rounded-lg bg-[#161918] border border-[#2A2E2C] text-[#9BA39E] font-medium text-[11px]">
+                            Kategori:{" "}
+                            <strong className="text-[#81C784]">
+                              {CATEGORY_LABELS[draft.category]}
+                            </strong>
+                          </span>
+                          <span
+                            className={`px-2.5 py-1 rounded-lg border font-medium text-[11px] ${
+                              SEVERITY_COLORS[draft.severity].bg
+                            } ${SEVERITY_COLORS[draft.severity].text} ${SEVERITY_COLORS[draft.severity].border}`}
+                          >
+                            Tingkat:{" "}
+                            <strong>{SEVERITY_LABELS[draft.severity]}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          onClick={handleConfirmData}
+                          className="flex-1 py-1.5 px-3.5 rounded-full bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/60 text-xs font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <CheckIcon className="w-3.5 h-3.5" />
+                          <span>Data Sudah Benar</span>
+                        </button>
+                        <button
+                          onClick={() => setStep("edit_data")}
+                          className="py-1.5 px-3.5 rounded-full bg-[#161918] hover:bg-[#1F2422] text-[#9BA39E] border border-[#2A2E2C] text-xs font-medium transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
+                        >
+                          <EditIcon className="w-3.5 h-3.5" />
+                          <span>Edit Data</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* ----------------- FASE 3: INLINE EDIT FORM ----------------- */}
+                {msg.step === "review_data" &&
+                  isLatest &&
+                  step === "edit_data" && (
+                    <div className="mt-3.5 p-3 rounded-xl bg-[#0D0F0E]/80 border border-[#2A2E2C] space-y-2.5 text-xs">
+                      <div className="flex items-center justify-between border-b border-[#2A2E2C] pb-1.5">
+                        <span className="font-semibold text-[#F2F2F0]">
+                          Koreksi Data Laporan
+                        </span>
+                        <button
+                          onClick={() => setStep("review_data")}
+                          className="text-[#9BA39E] hover:text-[#F2F2F0] cursor-pointer"
+                        >
+                          <CloseIcon className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-[#9BA39E] block mb-1">
+                          Judul Laporan
+                        </label>
+                        <input
+                          type="text"
+                          value={draft.title}
+                          onChange={(e) =>
+                            setDraft((d) => ({ ...d, title: e.target.value }))
+                          }
+                          className="w-full bg-[#161918] border border-[#2A2E2C] rounded-lg px-2.5 py-1.5 text-[#F2F2F0] text-xs outline-none focus:border-[#4CAF50]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-[#9BA39E] block mb-1">
+                          Deskripsi
+                        </label>
+                        <textarea
+                          rows={2}
+                          value={draft.description}
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              description: e.target.value,
+                            }))
+                          }
+                          className="w-full bg-[#161918] border border-[#2A2E2C] rounded-lg px-2.5 py-1.5 text-[#F2F2F0] text-xs outline-none focus:border-[#4CAF50] resize-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-[#9BA39E] block mb-1">
+                          Kategori
+                        </label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(Object.keys(CATEGORY_LABELS) as IssueCategory[]).map(
+                            (cat) => (
+                              <button
+                                key={cat}
+                                onClick={() =>
+                                  setDraft((d) => ({ ...d, category: cat }))
+                                }
+                                className={`py-1 px-1.5 rounded-lg text-[11px] transition-all border cursor-pointer ${
+                                  draft.category === cat
+                                    ? "bg-[#2E7D32]/35 border-[#2E7D32]/70 text-[#81C784] font-bold"
+                                    : "bg-[#161918] border-[#2A2E2C] text-[#9BA39E] hover:bg-[#1F2422]"
+                                }`}
+                              >
+                                {CATEGORY_LABELS[cat]}
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[11px] text-[#9BA39E] block mb-1">
+                          Tingkat Keparahan
+                        </label>
+                        <div className="grid grid-cols-4 gap-1">
+                          {(Object.keys(SEVERITY_LABELS) as SeverityLevel[]).map(
+                            (sev) => (
+                              <button
+                                key={sev}
+                                onClick={() =>
+                                  setDraft((d) => ({ ...d, severity: sev }))
+                                }
+                                className={`py-0.5 px-1 rounded-lg text-[10px] transition-all border cursor-pointer ${
+                                  draft.severity === sev
+                                    ? "bg-amber-500/30 border-amber-500/50 text-amber-300 font-bold"
+                                    : "bg-[#161918] border-[#2A2E2C] text-[#9BA39E] hover:bg-[#1F2422]"
+                                }`}
+                              >
+                                {SEVERITY_LABELS[sev]}
+                              </button>
+                            ),
+                          )}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => setStep("review_data")}
+                        className="w-full py-1.5 rounded-xl bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/50 text-xs font-semibold transition-all flex items-center justify-center gap-1 shadow-sm cursor-pointer"
+                      >
+                        <CheckIcon className="w-3.5 h-3.5" />
+                        <span>Simpan Perubahan</span>
+                      </button>
+                    </div>
+                  )}
+
+                {/* ----------------- FASE 4: DETEKSI & VERIFIKASI LOKASI ----------------- */}
+                {msg.step === "location_verify" &&
+                  isLatest &&
+                  step === "location_verify" && (
+                    <div className="mt-3.5 space-y-3">
+                      <div className="p-3 rounded-xl bg-[#0D0F0E]/70 border border-[#2A2E2C] flex items-start gap-2.5">
+                        <MapPinIcon className="w-4 h-4 text-[#81C784] flex-shrink-0 mt-0.5" />
+                        <div className="text-xs">
+                          <p className="text-[#F2F2F0] font-medium">
+                            {locationLabel}
+                          </p>
+                          <p className="text-[#9BA39E] text-[11px] font-mono mt-0.5">
+                            {latitude.toFixed(4)}, {longitude.toFixed(4)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={handleConfirmLocation}
+                          className="flex-1 py-1.5 px-3.5 rounded-full bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/60 text-xs font-semibold transition-all active:scale-95 flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <CheckIcon className="w-3.5 h-3.5" />
+                          <span>Lokasi Benar</span>
+                        </button>
+                        <button
+                          onClick={handleOpenMapPicker}
+                          className="py-1.5 px-3.5 rounded-full bg-[#161918] hover:bg-[#1F2422] text-[#9BA39E] border border-[#2A2E2C] text-xs font-medium transition-all active:scale-95 flex items-center gap-1 cursor-pointer"
+                        >
+                          <GpsIcon className="w-3.5 h-3.5" />
+                          <span>Geser Pin di Peta</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                {/* ----------------- FASE 4: MAP PICKER ----------------- */}
+                {msg.step === "map_picker" &&
+                  isLatest &&
+                  step === "map_picker" && (
+                    <div className="mt-3.5 space-y-2">
+                      <ReportMapPicker
+                        onLocationSelect={handleMapLocationSelected}
+                        initialLat={latitude}
+                        initialLng={longitude}
+                      />
+                      <button
+                        onClick={handleMapLocationConfirm}
+                        className="w-full py-1.5 rounded-xl bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/50 text-xs font-semibold shadow-sm transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
+                      >
+                        <CheckIcon className="w-3.5 h-3.5" />
+                        <span>Konfirmasi Titik Lokasi</span>
+                      </button>
+                    </div>
+                  )}
+
+                {/* ----------------- FASE 5: IDENTITAS PELAPOR (OPSIONAL) ----------------- */}
+                {msg.step === "email_optional" &&
+                  isLatest &&
+                  step === "email_optional" && (
+                    <div className="mt-3.5 flex items-center gap-2">
+                      <button
+                        onClick={handleSkipEmail}
+                        className="py-1.5 px-3.5 rounded-full bg-[#161918] hover:bg-[#1F2422] text-[#9BA39E] border border-[#2A2E2C] text-xs font-medium transition-all active:scale-95 cursor-pointer"
+                      >
+                        Lewati (Kirim Anonim)
+                      </button>
+                    </div>
+                  )}
+
+                {/* ----------------- FASE 6: SUKSES & KONFIRMASI ----------------- */}
+                {msg.step === "done" && isLatest && submittedReport && (
+                  <div className="mt-3.5 flex items-center gap-2.5">
+                    <button
+                      onClick={onScrollToMap}
+                      className="py-1.5 px-3.5 rounded-full bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/50 text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                    >
+                      <MapIcon className="w-3.5 h-3.5" />
+                      <span>Lihat di Peta Interaktif</span>
+                    </button>
+                    <button
+                      onClick={handleResetFlow}
+                      className="text-[#9BA39E] hover:text-[#F2F2F0] text-xs font-medium px-2 py-1.5 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <PlusIcon className="w-3.5 h-3.5" />
+                      <span>Lapor Baru</span>
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
-
-        {imagePreview && (
-          <div className="flex justify-end">
-            <img src={imagePreview} alt="Preview" className="w-24 h-24 object-cover rounded-xl border border-primary-500/40 shadow-md" />
-          </div>
-        )}
-
-        <div ref={chatEndRef} />
+          );
+        })}
       </div>
 
-      {/* Action Controls & Input Bar */}
-      <div className="p-3 sm:p-4 border-t border-white/10 bg-slate-900/70 flex-shrink-0 space-y-2">
-        {step === 'greeting' && (
-          <div className="flex flex-wrap gap-1.5 pb-1">
-            <button
-              onClick={handleStartReport}
-              className="bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold px-3 py-1.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center gap-1.5"
-            >
-              <PlusIcon className="w-3.5 h-3.5" />
-              <span>Buat Laporan Baru</span>
-            </button>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
-            >
-              <CameraIcon className="w-3.5 h-3.5" />
-              <span>Upload Foto</span>
-            </button>
-            <button
-              onClick={onScrollToMap}
-              className="bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 hover:text-white text-xs font-medium px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center gap-1.5"
-            >
-              <MapPinIcon className="w-3.5 h-3.5" />
-              <span>Lihat Peta</span>
-            </button>
-          </div>
-        )}
-
-        {step === 'photo' && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="flex-1 py-2.5 rounded-xl bg-primary-600 hover:bg-primary-500 text-white text-xs font-bold shadow-md transition-all active:scale-95 flex items-center justify-center gap-1.5"
-            >
-              <CameraIcon className="w-4 h-4" />
-              <span>Pilih / Ambil Foto</span>
-            </button>
-          </div>
-        )}
-
-        {step === 'confirm_ai' && aiResult && (
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleConfirmAi(true)}
-              className="flex-1 py-2 rounded-xl bg-green-500/20 border border-green-500/40 text-green-300 text-xs font-bold hover:bg-green-500/30 transition-all active:scale-95 flex items-center justify-center gap-1"
-            >
-              <CheckIcon className="w-4 h-4" />
-              <span>Sesuai</span>
-            </button>
-            <button
-              onClick={() => handleConfirmAi(false)}
-              className="flex-1 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-xs font-medium hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-1"
-            >
-              <EditIcon className="w-4 h-4" />
-              <span>Ubah Kategori</span>
-            </button>
-          </div>
-        )}
-
-        {step === 'manual_category' && (
-          <div className="space-y-2">
-            <div className="grid grid-cols-3 gap-1">
-              {(Object.keys(CATEGORY_LABELS) as IssueCategory[]).map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setReport(r => ({ ...r, finalCategory: cat }))}
-                  className={`py-1.5 px-2 rounded-xl text-xs transition-all border ${
-                    report.finalCategory === cat ? 'bg-primary-500/30 border-primary-500/50 text-primary-300 font-bold' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                  }`}
-                >
-                  {CATEGORY_LABELS[cat]}
-                </button>
-              ))}
-            </div>
-            <div className="grid grid-cols-4 gap-1">
-              {(Object.keys(SEVERITY_LABELS) as SeverityLevel[]).map(sev => (
-                <button
-                  key={sev}
-                  onClick={() => setReport(r => ({ ...r, finalSeverity: sev }))}
-                  className={`py-1 px-1.5 rounded-xl text-[10px] transition-all border ${
-                    report.finalSeverity === sev ? 'bg-yellow-500/30 border-yellow-500/50 text-yellow-300 font-bold' : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                  }`}
-                >
-                  {SEVERITY_LABELS[sev]}
-                </button>
-              ))}
-            </div>
-            <button
-              disabled={!report.finalCategory || !report.finalSeverity}
-              onClick={() => handleManualCategory(report.finalCategory!, report.finalSeverity!)}
-              className="w-full py-2 rounded-xl bg-primary-600 text-white text-xs font-bold hover:bg-primary-500 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-1"
-            >
-              <span>Lanjutkan</span>
-              <ArrowRightIcon className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
-        {step === 'location' && (
-          <div className="flex gap-2">
-            <button onClick={handleGpsLocation} className="flex-1 py-2 rounded-xl bg-green-500/20 border border-green-500/40 text-green-300 text-xs font-bold hover:bg-green-500/30 transition-all active:scale-95 flex items-center justify-center gap-1.5">
-              <GpsIcon className="w-4 h-4" />
-              <span>GPS Otomatis</span>
-            </button>
-            <button onClick={handleManualPin} className="flex-1 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-xs font-medium hover:bg-white/10 transition-all active:scale-95 flex items-center justify-center gap-1.5">
-              <MapPinIcon className="w-4 h-4" />
-              <span>Pin di Peta</span>
-            </button>
-          </div>
-        )}
-
-        {step === 'map_picker' && (
-          <div className="space-y-2">
-            <ReportMapPicker onLocationSelect={(lat, lng, label) => setReport(r => ({ ...r, latitude: lat, longitude: lng, locationMethod: 'manual', locationLabel: label }))} />
-            <button onClick={handleMapConfirmButton} className="w-full py-2 rounded-xl bg-primary-600 text-white text-xs font-bold hover:bg-primary-500 transition-all flex items-center justify-center gap-1">
-              <span>Konfirmasi Lokasi</span>
-              <ArrowRightIcon className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        )}
-
-        {step === 'done' && reportId && (
-          <button onClick={handleReset} className="w-full py-2.5 rounded-xl bg-primary-600/30 border border-primary-500/50 text-primary-200 text-xs font-bold hover:bg-primary-600/40 transition-all flex items-center justify-center gap-1.5">
-            <PlusIcon className="w-4 h-4" />
-            <span>Buat Laporan Lain</span>
-          </button>
-        )}
-
-        {/* Input Bar with Camera Icon Button */}
-        <form onSubmit={handleInputFormSubmit} className="relative flex items-center gap-1.5">
-          <input
-            type="file"
-            ref={fileInputRef}
-            accept="image/*"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) handlePhotoUpload(file);
-            }}
-          />
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            title="Upload Foto Pelaporan"
-            className="w-9 h-9 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
-          >
-            <CameraIcon className="w-4 h-4" />
-          </button>
+      {/* ----------------- BOTTOM INPUT BAR ----------------- */}
+      <div className="relative z-10 border-t border-[#2A2E2C] bg-[#161918]/45">
+        <form
+          onSubmit={handleFormSubmit}
+          className="flex items-center px-3.5 py-2.5 sm:px-4.5 sm:py-3"
+        >
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
-            disabled={!isInputStep}
             placeholder={
-              step === 'name'
-                ? 'Ketik nama kamu...'
-                : step === 'email'
-                ? 'Ketik email kamu...'
-                : step === 'description'
-                ? 'Ketik keterangan tambahan...'
-                : 'Tulis pesan atau masalah di sekitarmu...'
+              step === "email_optional"
+                ? "Masukkan email kamu (opsional) atau klik Lewati..."
+                : step === "idle"
+                  ? "Ketik masalah atau pertanyaan, atau klik Melapor..."
+                  : "Ketik pesan..."
             }
-            className="flex-1 bg-slate-900/90 text-white placeholder-slate-400 text-xs sm:text-sm px-3.5 py-2.5 rounded-xl border border-white/15 focus:outline-none focus:border-primary-500 transition-all shadow-inner disabled:opacity-40"
+            className="flex-1 bg-transparent text-[#F2F2F0] placeholder-[#9BA39E]/60 text-xs sm:text-sm font-normal outline-none py-1 pr-3"
           />
           <button
             type="submit"
-            disabled={!isInputStep || !inputValue.trim()}
-            className="w-9 h-9 rounded-xl bg-primary-600 hover:bg-primary-500 text-white flex items-center justify-center transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
-            aria-label="Kirim"
+            disabled={!inputValue.trim()}
+            className={`w-8 h-8 sm:w-9 sm:h-9 rounded-full flex items-center justify-center flex-shrink-0 transition-colors ${
+              inputValue.trim()
+                ? "bg-[#2E7D32]/40 border border-[#4CAF50]/60 text-[#F2F2F0] hover:bg-[#2E7D32]/70 cursor-pointer"
+                : "bg-[#1B5E20]/25 border border-[#2E7D32]/35 text-[#81C784] cursor-not-allowed"
+            }`}
+            aria-label="Send"
           >
-            <SendIcon className="w-4 h-4" />
+            <SendIcon className="w-5.5 h-4" />
           </button>
         </form>
       </div>
