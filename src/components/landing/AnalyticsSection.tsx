@@ -21,21 +21,24 @@ export default function AnalyticsSection({ issues = [] }: AnalyticsSectionProps)
   const [activeHoverIndex, setActiveHoverIndex] = useState<number | null>(5);
 
   const stats = useMemo(() => {
-    const total = issues.length > 0 ? issues.length : 124;
+    const total = issues.length;
 
-    const countNew = issues.filter(i => i.status === 'new').length || 42;
-    const countOpen = issues.filter(i => i.status === 'open').length || 54;
-    const countClosed = issues.filter(i => i.status === 'closed').length || 28;
+    const countNew = issues.filter((i) => i.status === 'new').length;
+    const countOpen = issues.filter((i) => i.status === 'open').length;
+    const countClosed = issues.filter((i) => i.status === 'closed').length;
 
-    const resRate = total > 0 ? Math.round((countClosed / total) * 100) : 22;
+    const resRate = total > 0 ? Math.round((countClosed / total) * 100) : 0;
 
     const catCounts = [
-      { name: 'Jalan Rusak', count: issues.filter(i => i.category === 'jalan').length || 58, icon: <RoadIcon className="w-4 h-4 text-red-400" />, pct: 47, color: '#ef4444' },
-      { name: 'Sampah Mangkrak', count: issues.filter(i => i.category === 'sampah').length || 28, icon: <TrashIcon className="w-4 h-4 text-emerald-400" />, pct: 23, color: '#10b981' },
-      { name: 'Jembatan Rusak', count: issues.filter(i => i.category === 'jembatan').length || 18, icon: <BridgeIcon className="w-4 h-4 text-amber-400" />, pct: 14, color: '#f59e0b' },
-      { name: 'Drainase Tersumbat', count: issues.filter(i => i.category === 'drainase').length || 12, icon: <DrainageIcon className="w-4 h-4 text-cyan-400" />, pct: 10, color: '#06b6d4' },
-      { name: 'Bangunan Rusak', count: issues.filter(i => i.category === 'bangunan').length || 8, icon: <BuildingIcon className="w-4 h-4 text-purple-400" />, pct: 6, color: '#a855f7' },
-    ];
+      { name: 'Jalan Rusak', count: issues.filter((i) => i.category === 'jalan').length, icon: <RoadIcon className="w-4 h-4 text-red-400" />, pct: 0, color: '#ef4444' },
+      { name: 'Sampah Mangkrak', count: issues.filter((i) => i.category === 'sampah').length, icon: <TrashIcon className="w-4 h-4 text-emerald-400" />, pct: 0, color: '#10b981' },
+      { name: 'Jembatan Rusak', count: issues.filter((i) => i.category === 'jembatan').length, icon: <BridgeIcon className="w-4 h-4 text-amber-400" />, pct: 0, color: '#f59e0b' },
+      { name: 'Drainase Tersumbat', count: issues.filter((i) => i.category === 'drainase').length, icon: <DrainageIcon className="w-4 h-4 text-cyan-400" />, pct: 0, color: '#06b6d4' },
+      { name: 'Bangunan Rusak', count: issues.filter((i) => i.category === 'bangunan').length, icon: <BuildingIcon className="w-4 h-4 text-purple-400" />, pct: 0, color: '#a855f7' },
+    ].map((item) => ({
+      ...item,
+      pct: total > 0 ? Math.round((item.count / total) * 100) : 0,
+    }));
 
     return {
       total,

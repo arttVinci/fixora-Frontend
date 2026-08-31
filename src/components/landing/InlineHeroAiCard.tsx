@@ -6,7 +6,7 @@ import type {
   IssueReport,
 } from "../../types";
 import {
-  simulateCvClassifier,
+  analyzePhoto,
   submitReport,
   getGreeting,
 } from "../../services/reportService";
@@ -117,6 +117,10 @@ export default function InlineHeroAiCard({
   // Location state - silently captured in background
   const [latitude, setLatitude] = useState<number>(-6.2088);
   const [longitude, setLongitude] = useState<number>(106.8456);
+  const [stagingSessionId, setStagingSessionId] = useState<string | null>(
+    null,
+  );
+
   const [locationLabel, setLocationLabel] = useState<string>(
     "Menteng, Jakarta Pusat",
   );
@@ -244,25 +248,15 @@ export default function InlineHeroAiCard({
     ]);
 
     try {
-      const result = await simulateCvClassifier(file);
-      const categoryTitles: Record<IssueCategory, string> = {
-        jalan: "Jalan Rusak / Berlubang",
-        jembatan: "Kerusakan Struktur Jembatan",
-        sampah: "Penumpukan Sampah Liar",
-        bangunan: "Kerusakan Fasilitas Bangunan",
-        drainase: "Saluran Drainase Tersumbat",
-      };
-
-      const generatedTitle =
-        categoryTitles[result.category] || `Laporan ${result.category}`;
-      const generatedDesc = `Terdeteksi ${result.description} dengan tingkat keparahan ${result.severity}.`;
+      const result = await analyzePhoto(file);
+      setStagingSessionId(result.sessionId);
 
       setDraft({
-        title: generatedTitle,
-        description: generatedDesc,
+        title: result.title,
+        description: result.description,
         category: result.category,
         severity: result.severity,
-        confidence: result.confidence,
+        confidence: 90,
       });
 
       setStep("review_data");
@@ -271,7 +265,7 @@ export default function InlineHeroAiCard({
         {
           id: `ai-${Date.now()}`,
           sender: "ai",
-          text: `Hasil Analisis AI Selesai (${result.confidence}% akurasi). Silakan periksa draft data di bawah ini:`,
+          text: `Hasil Analisis AI Selesai. Silakan periksa draft data di bawah ini:`,
           step: "review_data",
         },
       ]);
@@ -421,7 +415,7 @@ export default function InlineHeroAiCard({
     try {
       const submissionData: ReportSubmission = {
         reporterName: email ? email.split("@")[0] : "Warga Anonim",
-        reporterEmail: email || "anonim@fixora.id",
+        reporterEmail: email,
         imagePreviewUrl: imagePreview || undefined,
         finalCategory: draft.category,
         finalSeverity: draft.severity,
@@ -431,10 +425,12 @@ export default function InlineHeroAiCard({
         longitude: longitude,
         locationLabel: locationLabel,
         locationMethod: "gps",
-        description: `${draft.title}. ${draft.description}`,
+        title: draft.title,
+        description: draft.description,
+        stagingSessionId: stagingSessionId || undefined,
       };
 
-      const newReport = submitReport(submissionData);
+      const newReport = await submitReport(submissionData);
       setSubmittedReport(newReport);
       setStep("done");
 

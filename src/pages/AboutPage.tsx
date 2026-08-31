@@ -1,7 +1,9 @@
+import Footer from '../components/Footer';
+
 export default function AboutPage() {
   return (
-    <div className="min-h-screen bg-[#0D0F0E] text-[#F2F2F0] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto space-y-12">
+    <div className="min-h-screen bg-[#0D0F0E] text-[#F2F2F0] pt-24 pb-0 flex flex-col justify-between">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 space-y-12 w-full">
         {/* Header */}
         <div className="border-b border-[#2A2E2C] pb-8 space-y-3">
           <div className="flex items-center gap-2">
@@ -58,28 +60,23 @@ export default function AboutPage() {
               <tbody className="divide-y divide-[#2A2E2C] text-[#F2F2F0]">
                 <tr>
                   <td className="py-3 px-4 font-semibold">Pelacakan Durasi Mangkrak</td>
-                  <td className="py-3 px-4 text-[#81C784]">Terdokumentasi otomatis (Hari/Bulan)</td>
-                  <td className="py-3 px-4 text-[#9BA39E]">Lapor sekali, tidak ada timer publik</td>
+                  <td className="py-3 px-4 text-[#81C784]">Dihitung harian secara publik (Hari / Bulan)</td>
+                  <td className="py-3 px-4 text-[#9BA39E]">Status internal tanpa timer publik</td>
                 </tr>
                 <tr>
-                  <td className="py-3 px-4 font-semibold">Sumber Data</td>
-                  <td className="py-3 px-4 text-[#81C784]">AI News Crawler Otonom + Warga</td>
-                  <td className="py-3 px-4 text-[#9BA39E]">Pasif (Hanya menunggu laporan warga)</td>
+                  <td className="py-3 px-4 font-semibold">Akuisisi Data Masalah</td>
+                  <td className="py-3 px-4 text-[#81C784]">AI Autonomous Crawler (Berita/Medsos) + Warga</td>
+                  <td className="py-3 px-4 text-[#9BA39E]">Hanya menunggu warga melapor</td>
                 </tr>
                 <tr>
                   <td className="py-3 px-4 font-semibold">Korelasi Anggaran APBD</td>
-                  <td className="py-3 px-4 text-[#81C784]">Cross-reference data APBD SatuData</td>
-                  <td className="py-3 px-4 text-[#9BA39E]">Terisolasi tanpa konteks anggaran</td>
+                  <td className="py-3 px-4 text-[#81C784]">Otomatis cross-check dengan pagu anggaran dinas</td>
+                  <td className="py-3 px-4 text-[#9BA39E]">Terpisah dari transparansi anggaran</td>
                 </tr>
                 <tr>
-                  <td className="py-3 px-4 font-semibold">Klasifikasi Foto</td>
-                  <td className="py-3 px-4 text-[#81C784]">Multimodal Computer Vision otomatis</td>
-                  <td className="py-3 px-4 text-[#9BA39E]">Pilih kategori manual oleh user</td>
-                </tr>
-                <tr>
-                  <td className="py-3 px-4 font-semibold">Lisensi & Data</td>
-                  <td className="py-3 px-4 text-[#81C784]">Open Source (MIT) + Open API</td>
-                  <td className="py-3 px-4 text-[#9BA39E]">Tertutup (Proprietary)</td>
+                  <td className="py-3 px-4 font-semibold">Akses Terbuka & API</td>
+                  <td className="py-3 px-4 text-[#81C784]">Open Source (MIT) & Unduh CSV/JSON bebas</td>
+                  <td className="py-3 px-4 text-[#9BA39E]">Tertutup / Akses terbatas dinas</td>
                 </tr>
               </tbody>
             </table>
@@ -89,23 +86,18 @@ export default function AboutPage() {
         {/* 3. Tech Stack & Arsitektur */}
         <div className="space-y-4">
           <h2 className="text-xl font-bold text-[#F2F2F0] font-heading">
-            Arsitektur & Tech Stack
+            Arsitektur & Tumpukan Teknologi
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C]">
-              <div className="text-xs text-[#9BA39E] font-mono mb-1">BACKEND ENGINE</div>
-              <div className="text-base font-bold text-[#F2F2F0]">Go (Golang) + Fiber</div>
-              <p className="text-xs text-[#9BA39E] mt-1">Clean Architecture / Modular Monolith dengan GORM & PostgreSQL.</p>
-            </div>
-            <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C]">
-              <div className="text-xs text-[#9BA39E] font-mono mb-1">FRONTEND SPA</div>
+              <div className="text-xs text-[#81C784] font-mono mb-1">FRONTEND ECOSYSTEM</div>
               <div className="text-base font-bold text-[#F2F2F0]">React 19 + TypeScript</div>
-              <p className="text-xs text-[#9BA39E] mt-1">Vite + TailwindCSS dengan Industrial Green Engineering Palette.</p>
+              <p className="text-xs text-[#9BA39E] mt-1">TailwindCSS, Leaflet GIS Engine, Marker Clustering, Framer Motion.</p>
             </div>
             <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C]">
-              <div className="text-xs text-[#9BA39E] font-mono mb-1">GEOSPATIAL MAPPING</div>
-              <div className="text-base font-bold text-[#F2F2F0]">Leaflet + OpenStreetMap</div>
-              <p className="text-xs text-[#9BA39E] mt-1">Marker Clustering, Heatmap density layer, dan dark GIS tiles.</p>
+              <div className="text-xs text-amber-400 font-mono mb-1">HIGH-PERFORMANCE BACKEND</div>
+              <div className="text-base font-bold text-[#F2F2F0]">Golang (Go Fiber / Gin)</div>
+              <p className="text-xs text-[#9BA39E] mt-1">PostgreSQL + PostGIS spatial querying, low-latency API handling.</p>
             </div>
             <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C]">
               <div className="text-xs text-[#9BA39E] font-mono mb-1">AI & VISION PIPELINE</div>
@@ -138,6 +130,8 @@ export default function AboutPage() {
           </a>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }
