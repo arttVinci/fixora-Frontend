@@ -1,137 +1,137 @@
-import { useState, useEffect } from "react";
-import { MapPinIcon, SparklesIcon } from "./Icons";
+import { useState, useEffect, useCallback } from "react";
+import { Link, useLocation } from "react-router-dom";
 
 export type AppPage = "home" | "peta" | "transparansi" | "tentang";
 
-interface NavbarProps {
-  activePage: AppPage;
-  onNavigate: (page: AppPage) => void;
-  onLaporClick: () => void;
-}
+const navLinks: { path: string; id: AppPage; label: string; badge?: string }[] =
+  [
+    { path: "/", id: "home", label: "Beranda" },
+    { path: "/peta", id: "peta", label: "Peta Infrastruktur" },
+    {
+      path: "/transparansi",
+      id: "transparansi",
+      label: "Open Data & Transparansi",
+    },
+    { path: "/tentang", id: "tentang", label: "Tentang" },
+  ];
 
-const navLinks: { id: AppPage; label: string; badge?: string }[] = [
-  { id: "home", label: "Beranda" },
-  { id: "peta", label: "Peta Interaktif", badge: "LIVE" },
-  { id: "transparansi", label: "Transparansi & Anggaran" },
-  { id: "tentang", label: "Tentang OSS" },
-];
-
-export default function Navbar({
-  activePage,
-  onNavigate,
-  onLaporClick,
-}: NavbarProps) {
+export default function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
+  const pathname = location.pathname;
+  const isMapPage = pathname === "/peta";
+
+  // Handle scroll state for navbar glassmorphism
   useEffect(() => {
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
+      setIsScrolled(window.scrollY > 15);
     };
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Close mobile menu on route change
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Handle Escape key to close mobile menu
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      setIsMobileMenuOpen(false);
+    }
   }, []);
 
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
+      window.addEventListener("keydown", handleKeyDown);
     } else {
       document.body.style.overflow = "";
     }
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isMobileMenuOpen]);
+  }, [isMobileMenuOpen, handleKeyDown]);
 
-  const handleLinkClick = (page: AppPage) => {
-    onNavigate(page);
-    setIsMobileMenuOpen(false);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  const getIsActive = (path: string) => {
+    if (path === "/") {
+      return pathname === "/" || pathname === "";
+    }
+    return pathname === path || pathname.startsWith(path + "/");
   };
 
   return (
     <>
       <nav
         className={`${
-          activePage === 'peta' ? 'relative' : 'fixed top-0 left-0 right-0'
+          isMapPage ? "relative" : "fixed top-0 left-0 right-0"
         } z-50 transition-all duration-300 flex-shrink-0 ${
-          isScrolled || isMobileMenuOpen || activePage === 'peta'
-            ? 'bg-[#0D0F0E]/95 py-3 backdrop-blur-xl border-b border-[#2A2E2C]'
-            : 'bg-gradient-to-b from-[#0D0F0E]/90 to-transparent py-4'
+          isScrolled || isMobileMenuOpen || isMapPage
+            ? "bg-[#0D0F0E]/95 py-3 backdrop-blur-xl border-b border-[#2A2E2C]"
+            : "bg-gradient-to-b from-[#0D0F0E]/90 to-transparent py-4"
         }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between">
             {/* Brand Logo */}
-            <div
-              className="flex items-center gap-2.5 cursor-pointer select-none"
-              onClick={() => handleLinkClick("home")}
+            <Link
+              to="/"
+              className="flex items-center gap-2.5 cursor-pointer select-none group"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
             >
               <img
                 src="/logo.png"
                 alt="Fixora Logo"
-                className="w-9 h-9 object-contain drop-shadow-md"
+                width={36}
+                height={36}
+                className="w-9 h-9 object-contain drop-shadow-md group-hover:scale-105 transition-transform"
               />
-              <div className="flex items-baseline gap-1.5">
-                <span className="font-heading font-bold text-xl text-[#F2F2F0] tracking-tight">
-                  Fixora
-                </span>
-                <span className="text-[10px] font-mono text-[#81C784] font-semibold uppercase tracking-wider bg-[#1B5E20]/30 px-1.5 py-0.5 rounded border border-[#2E7D32]/40">
-                  OSS
-                </span>
-              </div>
-            </div>
+              <span className="font-heading font-bold text-xl text-[#F2F2F0] tracking-tight group-hover:text-[#81C784] transition-colors">
+                Fixora
+              </span>
+            </Link>
 
             {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center gap-1 sm:gap-2">
+            <div className="hidden md:flex items-center gap-1 sm:gap-1.5">
               {navLinks.map((link) => {
-                const isActive = activePage === link.id;
+                const isActive = getIsActive(link.path);
                 return (
-                  <button
-                    key={link.id}
-                    onClick={() => handleLinkClick(link.id)}
-                    className={`relative px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className={`relative px-3.5 py-2 rounded-xl text-xs sm:text-sm font-medium transition-all flex items-center gap-1.5 cursor-pointer border ${
                       isActive
-                        ? "text-[#F2F2F0] bg-[#161918] border border-[#2A2E2C]"
-                        : "text-[#9BA39E] hover:text-[#F2F2F0] hover:bg-[#161918]/50"
+                        ? "text-[#F2F2F0] bg-[#161918] border-[#2A2E2C] shadow-sm"
+                        : "text-[#9BA39E] border-transparent hover:text-[#F2F2F0] hover:bg-[#161918]/60 hover:border-[#2A2E2C]/50"
                     }`}
                   >
                     <span>{link.label}</span>
                     {link.badge && (
-                      <span className="text-[9px] font-bold font-mono px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">
+                      <span className="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">
                         {link.badge}
                       </span>
                     )}
                     {isActive && (
                       <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-3 h-0.5 bg-[#81C784] rounded-full" />
                     )}
-                  </button>
+                  </Link>
                 );
               })}
-            </div>
-
-            {/* Desktop Right Action */}
-            <div className="hidden md:flex items-center gap-3">
-              {activePage !== 'peta' ? (
-                <button
-                  onClick={onLaporClick}
-                  className="btn-primary text-xs sm:text-sm py-2 px-4 shadow-md cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>+ Lapor Masalah</span>
-                </button>
-              ) : (
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#161918] border border-[#2A2E2C] text-xs text-[#9BA39E]">
-                  <span className="w-2 h-2 rounded-full bg-[#81C784] animate-pulse" />
-                  <span className="font-mono text-[#F2F2F0]">Jabodetabek Live</span>
-                </div>
-              )}
             </div>
 
             {/* Mobile Hamburger Button */}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="md:hidden w-10 h-10 rounded-xl bg-[#161918] border border-[#2A2E2C] flex items-center justify-center text-[#F2F2F0] active:scale-95 transition-all cursor-pointer"
+              className="md:hidden w-10 h-10 rounded-xl bg-[#161918] border border-[#2A2E2C] flex items-center justify-center text-[#F2F2F0] active:scale-95 transition-all cursor-pointer hover:border-[#81C784]/50"
               aria-label="Toggle menu"
+              aria-expanded={isMobileMenuOpen}
             >
               <svg
                 className="w-5 h-5"
@@ -165,15 +165,16 @@ export default function Navbar({
         <div className="fixed inset-0 z-40 bg-[#0D0F0E]/98 pt-20 px-6 pb-8 flex flex-col justify-between md:hidden animate-fadeIn backdrop-blur-2xl">
           <div className="space-y-3 pt-4">
             {navLinks.map((link) => {
-              const isActive = activePage === link.id;
+              const isActive = getIsActive(link.path);
               return (
-                <button
-                  key={link.id}
-                  onClick={() => handleLinkClick(link.id)}
-                  className={`w-full text-left py-3.5 px-4 rounded-2xl text-base font-semibold transition-all flex items-center justify-between cursor-pointer ${
+                <Link
+                  key={link.path}
+                  to={link.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={`w-full text-left py-3.5 px-4 rounded-2xl text-base font-semibold transition-all flex items-center justify-between cursor-pointer border ${
                     isActive
-                      ? "bg-[#161918] text-[#81C784] border border-[#2E7D32]/50"
-                      : "text-[#9BA39E] hover:text-[#F2F2F0]"
+                      ? "bg-[#161918] text-[#81C784] border-[#2E7D32]/50"
+                      : "text-[#9BA39E] border-transparent hover:text-[#F2F2F0] hover:bg-[#161918]/40"
                   }`}
                 >
                   <span>{link.label}</span>
@@ -182,23 +183,21 @@ export default function Navbar({
                       {link.badge}
                     </span>
                   )}
-                </button>
+                </Link>
               );
             })}
           </div>
 
           <div className="space-y-4 pt-6 border-t border-[#2A2E2C]">
-            <button
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onLaporClick();
-              }}
-              className="w-full btn-primary py-3 text-center justify-center font-bold text-sm"
+            <Link
+              to="/peta"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="w-full btn-primary py-3 text-center justify-center font-bold text-sm flex items-center shadow-lg"
             >
               + Lapor Masalah
-            </button>
+            </Link>
             <p className="text-center text-xs text-[#9BA39E] font-mono">
-              Fixora v1.0 • Open Source Infrastructure Tracker
+              Fixora v1.0 • Infrastructure Neglect Tracker
             </p>
           </div>
         </div>

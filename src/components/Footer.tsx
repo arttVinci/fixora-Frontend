@@ -1,30 +1,24 @@
+import { Link } from 'react-router-dom';
 import Reveal from './Reveal';
 
-interface FooterProps {
-  onNavigateHome?: () => void;
-  onNavigateMap?: () => void;
-  onNavigateTransparency?: () => void;
-  onNavigateAbout?: () => void;
-}
+export default function Footer() {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
-export default function Footer({
-  onNavigateHome,
-  onNavigateMap,
-  onNavigateTransparency,
-  onNavigateAbout,
-}: FooterProps) {
   return (
     <footer className="relative bg-[#0D0F0E] border-t border-[#2A2E2C]">
       <Reveal className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
           <div className="sm:col-span-2 lg:col-span-1">
-            <div
-              className="flex items-center gap-2.5 mb-4 cursor-pointer"
-              onClick={onNavigateHome}
+            <Link
+              to="/"
+              onClick={scrollToTop}
+              className="flex items-center gap-2.5 mb-4 cursor-pointer inline-flex"
             >
               <img src="/logo.png" alt="Fixora Logo" className="w-10 h-10 object-contain drop-shadow-md" />
               <span className="font-heading font-bold text-xl text-[#F2F2F0]">Fixora</span>
-            </div>
+            </Link>
             <p className="text-[#9BA39E] text-sm leading-relaxed mb-4">
               Platform open source transparansi alokasi APBD dan pelacakan infrastruktur mangkrak untuk akuntabilitas publik Indonesia.
             </p>
@@ -37,28 +31,31 @@ export default function Footer({
             <h3 className="font-semibold text-[#F2F2F0] mb-4">Eksplorasi</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <button
-                  onClick={onNavigateMap}
+                <Link
+                  to="/peta"
+                  onClick={scrollToTop}
                   className="text-[#9BA39E] hover:text-[#81C784] transition-colors cursor-pointer"
                 >
                   Peta Interaktif Fullscreen
-                </button>
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={onNavigateTransparency}
+                <Link
+                  to="/transparansi"
+                  onClick={scrollToTop}
                   className="text-[#9BA39E] hover:text-[#81C784] transition-colors cursor-pointer"
                 >
-                  Transparansi & Anggaran
-                </button>
+                  Data & Transparansi
+                </Link>
               </li>
               <li>
-                <button
-                  onClick={onNavigateAbout}
+                <Link
+                  to="/tentang"
+                  onClick={scrollToTop}
                   className="text-[#9BA39E] hover:text-[#81C784] transition-colors cursor-pointer"
                 >
-                  Tentang Fixora OSS
-                </button>
+                  Tentang Fixora
+                </Link>
               </li>
             </ul>
           </div>
@@ -67,12 +64,13 @@ export default function Footer({
             <h3 className="font-semibold text-[#F2F2F0] mb-4">Data & API</h3>
             <ul className="space-y-3 text-sm">
               <li>
-                <button
-                  onClick={onNavigateTransparency}
+                <Link
+                  to="/transparansi"
+                  onClick={scrollToTop}
                   className="text-[#9BA39E] hover:text-[#81C784] transition-colors cursor-pointer"
                 >
                   Export Dataset (CSV/JSON)
-                </button>
+                </Link>
               </li>
               <li>
                 <a
