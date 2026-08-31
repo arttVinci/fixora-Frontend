@@ -1,20 +1,34 @@
 import { useEffect, useState } from 'react';
-import type { IssueReport } from '../../types';
+import type { IssueReport, IssueCategory } from '../../types';
 import StatusHistoryTimeline from './StatusHistoryTimeline';
 import { getDurationDays } from '../../utils/dateUtils';
-import { CheckIcon, MapPinIcon } from '../Icons';
+import {
+  CheckIcon,
+  MapPinIcon,
+  RoadIcon,
+  BridgeIcon,
+  TrashIcon,
+  BuildingIcon,
+  DrainageIcon,
+  AiRobotIcon,
+  UserIcon,
+  ClockIcon,
+} from '../Icons';
 
-const categoryLabels: Record<string, string> = {
-  jalan: 'Jalan Rusak',
-  jembatan: 'Jembatan',
-  sampah: 'Sampah',
-  bangunan: 'Bangunan',
-  drainase: 'Drainase',
+const categoryConfig: Record<
+  IssueCategory,
+  { label: string; icon: React.ReactNode }
+> = {
+  jalan: { label: 'Jalan Rusak', icon: <RoadIcon className="w-3.5 h-3.5" /> },
+  jembatan: { label: 'Jembatan Rawan', icon: <BridgeIcon className="w-3.5 h-3.5" /> },
+  sampah: { label: 'Sampah Menumpuk', icon: <TrashIcon className="w-3.5 h-3.5" /> },
+  bangunan: { label: 'Bangunan Terbengkalai', icon: <BuildingIcon className="w-3.5 h-3.5" /> },
+  drainase: { label: 'Drainase Tersumbat', icon: <DrainageIcon className="w-3.5 h-3.5" /> },
 };
 
-const sourceLabels: Record<string, string> = {
-  citizen: 'Laporan Warga',
-  ai_media: 'Terdeteksi AI (Media)',
+const sourceLabels: Record<string, { label: string; icon: React.ReactNode }> = {
+  citizen: { label: 'Laporan Warga', icon: <UserIcon className="w-3.5 h-3.5 text-[#81C784]" /> },
+  ai_media: { label: 'Terdeteksi AI (Media)', icon: <AiRobotIcon className="w-3.5 h-3.5 text-[#81C784]" /> },
 };
 
 const statusConfig: Record<string, { label: string; badge: string }> = {
@@ -85,8 +99,9 @@ export default function ReportDetailModal({ issue, onClose, onConfirmIssue }: Re
                 {status.label}
               </span>
               {durationDays > 0 && (
-                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
-                  ⏱ Dibiarkan {durationDays} Hari
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium inline-flex items-center gap-1">
+                  <ClockIcon className="w-3 h-3 text-amber-300" />
+                  <span>Dibiarkan {durationDays} Hari</span>
                 </span>
               )}
             </div>
@@ -120,11 +135,13 @@ export default function ReportDetailModal({ issue, onClose, onConfirmIssue }: Re
           <div className="p-5 sm:p-6 space-y-5">
             {/* Tags & Metadata */}
             <div className="flex flex-wrap items-center gap-2">
-              <span className="px-3 py-1 bg-[#1B5E20]/30 text-[#81C784] border border-[#2E7D32]/40 rounded-full text-xs font-semibold">
-                {categoryLabels[issue.category] || issue.category}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1B5E20]/30 text-[#81C784] border border-[#2E7D32]/40 rounded-full text-xs font-semibold">
+                {categoryConfig[issue.category]?.icon}
+                <span>{categoryConfig[issue.category]?.label || issue.category}</span>
               </span>
-              <span className="px-3 py-1 bg-[#0D0F0E] text-[#9BA39E] border border-[#2A2E2C] rounded-full text-xs font-medium">
-                {sourceLabels[issue.source] || issue.source}
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0D0F0E] text-[#9BA39E] border border-[#2A2E2C] rounded-full text-xs font-medium">
+                {sourceLabels[issue.source]?.icon}
+                <span>{sourceLabels[issue.source]?.label || issue.source}</span>
               </span>
               {issue.location && (
                 <span className="flex items-center gap-1.5 text-xs text-[#9BA39E] bg-[#0D0F0E] px-3 py-1 rounded-full border border-[#2A2E2C]">

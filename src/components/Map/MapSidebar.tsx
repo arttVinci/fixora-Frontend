@@ -1,14 +1,42 @@
 import { useState } from 'react';
 import type { IssueReport, IssueCategory } from '../../types';
 import { getDurationDays } from '../../utils/dateUtils';
-import { MapPinIcon, SearchIcon } from '../Icons';
+import {
+  MapPinIcon,
+  SearchIcon,
+  RoadIcon,
+  BridgeIcon,
+  TrashIcon,
+  BuildingIcon,
+  DrainageIcon,
+  AiRobotIcon,
+  ClockIcon,
+} from '../Icons';
 
-const categoryLabels: Record<IssueCategory, string> = {
-  jalan: 'Jalan',
-  jembatan: 'Jembatan',
-  sampah: 'Sampah',
-  bangunan: 'Bangunan',
-  drainase: 'Drainase',
+const categoryLabels: Record<
+  IssueCategory,
+  { label: string; icon: (cls?: string) => React.ReactNode }
+> = {
+  jalan: {
+    label: 'Jalan',
+    icon: (cls = 'w-3 h-3') => <RoadIcon className={cls} />,
+  },
+  jembatan: {
+    label: 'Jembatan',
+    icon: (cls = 'w-3 h-3') => <BridgeIcon className={cls} />,
+  },
+  sampah: {
+    label: 'Sampah',
+    icon: (cls = 'w-3 h-3') => <TrashIcon className={cls} />,
+  },
+  bangunan: {
+    label: 'Bangunan',
+    icon: (cls = 'w-3 h-3') => <BuildingIcon className={cls} />,
+  },
+  drainase: {
+    label: 'Drainase',
+    icon: (cls = 'w-3 h-3') => <DrainageIcon className={cls} />,
+  },
 };
 
 interface MapSidebarProps {
@@ -57,37 +85,39 @@ export default function MapSidebar({
   const totalActive = issues.filter((i) => i.status === 'open' || i.status === 'new').length;
 
   /* ══════════════════════════════════════════════
-     COLLAPSED STATE: Show a vertical tab to reopen
+     MINIMIZED STATE: Floating pill button
      ══════════════════════════════════════════════ */
   if (!isOpen) {
     return (
-      <div className="h-full flex-shrink-0 z-20 flex items-stretch">
-        <button
-          onClick={onToggleOpen}
-          className="w-10 h-full bg-[#161918] hover:bg-[#1F2422] border-r border-[#2A2E2C] flex flex-col items-center justify-center gap-3 cursor-pointer transition-colors group"
-          title="Tampilkan Panel Laporan"
-        >
-          {/* Arrow icon pointing right */}
-          <svg className="w-5 h-5 text-[#81C784] group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          {/* Vertical text */}
-          <span className="text-[10px] font-bold text-[#9BA39E] group-hover:text-[#F2F2F0] tracking-widest uppercase [writing-mode:vertical-lr] rotate-180">
-            Laporan ({filteredIssues.length})
-          </span>
-        </button>
-      </div>
+      <button
+        onClick={onToggleOpen}
+        className="absolute top-3 left-3 z-[1100] flex items-center gap-2 px-3.5 py-2.5 bg-[#161918]/95 hover:bg-[#1F2422] border border-[#2A2E2C] rounded-2xl shadow-2xl backdrop-blur-xl cursor-pointer transition-all duration-300 hover:shadow-[0_0_24px_rgba(46,125,50,0.2)] hover:border-[#2E7D32]/50 group"
+        title="Tampilkan Panel Laporan"
+      >
+        <div className="w-7 h-7 rounded-xl bg-[#2E7D32]/25 border border-[#2E7D32]/40 flex items-center justify-center text-[#81C784] group-hover:bg-[#2E7D32]/40 transition-colors">
+          <MapPinIcon className="w-3.5 h-3.5" />
+        </div>
+        <div className="flex flex-col items-start">
+          <span className="text-xs font-bold text-[#F2F2F0] leading-none">Laporan</span>
+          <span className="text-[10px] text-[#81C784] font-mono leading-tight">{filteredIssues.length} Isu</span>
+        </div>
+        <svg className="w-4 h-4 text-[#9BA39E] group-hover:text-[#81C784] group-hover:translate-x-0.5 transition-all ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
     );
   }
 
   /* ══════════════════════════════════════════════
-     EXPANDED STATE: Full sidebar panel
+     EXPANDED STATE: Floating modal-style panel
      ══════════════════════════════════════════════ */
   return (
-    <div className="w-96 h-full bg-[#161918] border-r border-[#2A2E2C] flex flex-col flex-shrink-0 z-20 select-none">
+    <div
+      className="absolute top-3 left-3 bottom-3 z-[1100] w-[380px] max-w-[calc(100vw-24px)] flex flex-col bg-[#161918]/[0.97] border border-[#2A2E2C] rounded-3xl shadow-[0_8px_60px_rgba(0,0,0,0.7)] backdrop-blur-xl select-none animate-sidebar-in overflow-hidden"
+    >
 
       {/* ── Header ── */}
-      <div className="p-4 border-b border-[#2A2E2C] space-y-3 flex-shrink-0 bg-[#121514]">
+      <div className="p-4 border-b border-[#2A2E2C] space-y-3 flex-shrink-0 bg-[#121514]/80 rounded-t-3xl">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-xl bg-[#2E7D32]/25 border border-[#2E7D32]/40 flex items-center justify-center text-[#81C784]">
@@ -98,7 +128,7 @@ export default function MapSidebar({
                 Radar Laporan Publik
               </h2>
               <span className="text-[11px] text-[#81C784] font-mono mt-0.5 inline-block">
-                {totalActive} Isu Aktif • Jabodetabek
+                {totalActive} Fasilitas Terdata • Jawa Barat
               </span>
             </div>
           </div>
@@ -106,10 +136,10 @@ export default function MapSidebar({
           {/* ★ MINIMIZE BUTTON ★ */}
           <button
             onClick={onToggleOpen}
-            className="w-8 h-8 rounded-lg bg-[#0D0F0E] hover:bg-[#1F2422] border border-[#2A2E2C] text-[#9BA39E] hover:text-[#F2F2F0] flex items-center justify-center transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-xl bg-[#0D0F0E] hover:bg-[#1F2422] border border-[#2A2E2C] text-[#9BA39E] hover:text-[#F2F2F0] flex items-center justify-center transition-colors cursor-pointer group"
             title="Sembunyikan Panel"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
           </button>
@@ -149,17 +179,19 @@ export default function MapSidebar({
           </button>
           {(Object.keys(categoryLabels) as IssueCategory[]).map((cat) => {
             const count = issues.filter((i) => i.category === cat).length;
+            const config = categoryLabels[cat];
             return (
               <button
                 key={cat}
                 onClick={() => onSelectCategory(cat)}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer border ${
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all cursor-pointer border ${
                   selectedCategory === cat
                     ? 'bg-[#2E7D32]/30 text-[#81C784] border-[#2E7D32]/60'
                     : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:text-[#F2F2F0]'
                 }`}
               >
-                {categoryLabels[cat]} ({count})
+                {config.icon('w-3 h-3')}
+                <span>{config.label} ({count})</span>
               </button>
             );
           })}
@@ -218,20 +250,22 @@ export default function MapSidebar({
                 {/* Tags row */}
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#161918] text-[#81C784] border border-[#2A2E2C] font-semibold uppercase">
-                      {categoryLabels[issue.category] || issue.category}
+                    <span className="inline-flex items-center gap-1 text-[10px] font-mono px-2 py-0.5 rounded-md bg-[#161918] text-[#81C784] border border-[#2A2E2C] font-semibold uppercase">
+                      {categoryLabels[issue.category]?.icon('w-3 h-3')}
+                      {categoryLabels[issue.category]?.label || issue.category}
                     </span>
                     <span className="text-[10px] font-mono text-[#9BA39E]">
                       #{issue.id}
                     </span>
                   </div>
                   {days > 0 && (
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
+                    <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md border ${
                       days > 60 ? 'bg-rose-500/20 text-rose-300 border-rose-500/35'
                         : days > 30 ? 'bg-amber-500/20 text-amber-300 border-amber-500/35'
                         : 'bg-blue-500/20 text-blue-300 border-blue-500/35'
                     }`}>
-                      ⏱ {days} Hari
+                      <ClockIcon className="w-2.5 h-2.5" />
+                      <span>{days} Hari</span>
                     </span>
                   )}
                 </div>
@@ -243,18 +277,36 @@ export default function MapSidebar({
 
                 {/* Footer */}
                 <div className="flex items-center justify-between text-[11px] text-[#9BA39E] pt-1.5 border-t border-[#2A2E2C]/50">
-                  <span className="flex items-center gap-1 truncate max-w-[170px]">
+                  <span className="flex items-center gap-1 truncate max-w-[160px]">
                     <MapPinIcon className="w-3 h-3 text-[#81C784] flex-shrink-0" />
                     <span className="truncate">{issue.location || 'Lokasi terdaftar'}</span>
                   </span>
-                  <span className="text-[10px] font-mono text-[#81C784]">
-                    {issue.confirmationCount || 0} Konfirmasi
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {issue.source === 'ai_media' && (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-[#1B5E20]/30 text-[#81C784] text-[9px] font-mono border border-[#2E7D32]/40">
+                        <AiRobotIcon className="w-2.5 h-2.5" /> AI Scanner
+                      </span>
+                    )}
+                    <span className="text-[10px] font-mono text-[#81C784]">
+                      {issue.confirmationCount || 0} Konfirmasi
+                    </span>
+                  </div>
                 </div>
               </div>
             );
           })
         )}
+      </div>
+
+      {/* ── Bottom status bar ── */}
+      <div className="flex-shrink-0 px-4 py-2.5 border-t border-[#2A2E2C] bg-[#121514]/80 rounded-b-3xl">
+        <div className="flex items-center justify-between text-[10px] font-mono text-[#9BA39E]">
+          <span>Menampilkan {filteredIssues.length} dari {issues.length} laporan</span>
+          <span className="flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#81C784] animate-pulse"></span>
+            Live
+          </span>
+        </div>
       </div>
     </div>
   );

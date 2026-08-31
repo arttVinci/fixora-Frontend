@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { MapBounds } from '../../types/api';
 import {
   MapPinIcon,
-  CameraIcon,
   LocationTargetIcon,
   FlameIcon,
   SunIcon,
@@ -16,8 +16,7 @@ import type { IssueReport, IssueCategory, SourceType } from '../../types';
 import { createCustomMarkerIcon } from './CustomMarker';
 import MarkerPopup from './MarkerPopup';
 import MapSidebar from './MapSidebar';
-import ReportDetailModal from './ReportDetailModal';
-import PhotoReportModal from './PhotoReportModal';
+
 import PinReportModal from './PinReportModal';
 import HeatmapLayer from './HeatmapLayer';
 import { getDurationDays } from '../../utils/dateUtils';
@@ -44,21 +43,34 @@ interface InteractiveMapProps {
 
 function MapControlsHelper({
   onRegisterFlyTo,
+  sidebarOpen,
 }: {
   onRegisterFlyTo: (
     flyFn: (lat: number, lng: number) => void,
     zoomInFn: () => void,
     zoomOutFn: () => void
   ) => void;
+  sidebarOpen: boolean;
 }) {
   const map = useMap();
   useEffect(() => {
     onRegisterFlyTo(
-      (lat, lng) => map.flyTo([lat, lng], 15, { animate: true }),
+      (lat, lng) => {
+        // Offset to account for:
+        // 1. Floating sidebar covering the left side (horizontal)
+        // 2. Popup opening above the marker needs room (vertical)
+        const SIDEBAR_WIDTH = 400; // sidebar ~380px + padding
+        const POPUP_HEIGHT_OFFSET = 200; // push map center up so tall popup has room
+        const xOffset = sidebarOpen ? SIDEBAR_WIDTH / 2 : 0;
+        const targetPoint = map.project([lat, lng], 15);
+        const offsetPoint = L.point(targetPoint.x - xOffset, targetPoint.y - POPUP_HEIGHT_OFFSET);
+        const offsetLatLng = map.unproject(offsetPoint, 15);
+        map.flyTo(offsetLatLng, 15, { animate: true });
+      },
       () => map.zoomIn(),
       () => map.zoomOut()
     );
-  }, [map, onRegisterFlyTo]);
+  }, [map, onRegisterFlyTo, sidebarOpen]);
   return null;
 }
 
@@ -93,18 +105,60 @@ function MapClickHandler({
   return null;
 }
 
+/* ── Marker with auto-open popup ──────────────────────────── */
+
+function IssueMarker({
+  issue,
+  isSelected,
+  onSelect,
+  onViewDetail,
+}: {
+  issue: IssueReport;
+  isSelected: boolean;
+  onSelect: (issue: IssueReport) => void;
+  onViewDetail: (issue: IssueReport) => void;
+}) {
+  const markerRef = useRef<L.Marker>(null);
+
+  useEffect(() => {
+    if (isSelected && markerRef.current) {
+      // Wait for flyTo animation to settle before opening popup
+      const timer = setTimeout(() => {
+        markerRef.current?.openPopup();
+      }, 800);
+      return () => clearTimeout(timer);
+    }
+  }, [isSelected]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[issue.latitude, issue.longitude]}
+      icon={createCustomMarkerIcon({
+        category: issue.category,
+        source: issue.source,
+        durationDays: getDurationDays(issue.reportedAt),
+        imageUrl: issue.imageUrl,
+        title: issue.title,
+      })}
+      eventHandlers={{ click: () => onSelect(issue) }}
+    >
+      <MarkerPopup issue={issue} onViewDetail={onViewDetail} />
+    </Marker>
+  );
+}
+
 /* ── Main component ───────────────────────────────────────── */
 
 export default function InteractiveMap({
   issues, onAddIssue, onBoundsChange,
 }: InteractiveMapProps) {
-  const [selectedIssue, setSelectedIssue] = useState<IssueReport | null>(null);
-  const [isPhotoMode, setIsPhotoMode] = useState(false);
   const [isPinMode, setIsPinMode] = useState(false);
   const [pinLocation, setPinLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [isHeatmapEnabled, setIsHeatmapEnabled] = useState(false);
   const [mapTheme, setMapTheme] = useState<'dark' | 'light'>('dark');
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
   // Sidebar filter state
   const [selectedCategory, setSelectedCategory] = useState<IssueCategory | 'all'>('all');
@@ -144,9 +198,15 @@ export default function InteractiveMap({
     return true;
   });
 
+  const navigate = useNavigate();
+
   const handleSelectIssue = (issue: IssueReport) => {
-    setSelectedIssue(issue);
+    setSelectedIssueId(issue.id);
     flyToFn(issue.latitude, issue.longitude);
+  };
+
+  const handleViewDetail = (issue: IssueReport) => {
+    navigate(`/laporan/${issue.id}`);
   };
 
   const handleLocateMe = () => {
@@ -163,14 +223,14 @@ export default function InteractiveMap({
     : 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png';
 
   return (
-    <div className="relative w-full h-full flex bg-[#0D0F0E] select-none">
+    <div className="relative w-full h-full bg-[#0D0F0E] select-none">
 
-      {/* ━━━ 1. DOCKED LEFT SIDEBAR ━━━ */}
+      {/* ━━━ 1. FLOATING SIDEBAR OVERLAY ━━━ */}
       <MapSidebar
         issues={issues}
         totalIssues={issues.length}
         onSelectIssue={handleSelectIssue}
-        selectedIssueId={selectedIssue?.id}
+        selectedIssueId={selectedIssueId}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
         selectedDuration={selectedDuration}
@@ -179,20 +239,11 @@ export default function InteractiveMap({
         onToggleOpen={() => setIsSidebarOpen(!isSidebarOpen)}
       />
 
-      {/* ━━━ 2. MAP CANVAS AREA ━━━ */}
-      <div className="relative flex-1 h-full overflow-hidden">
+      {/* ━━━ 2. FULL-WIDTH MAP CANVAS ━━━ */}
+      <div className="relative w-full h-full overflow-hidden">
 
         {/* ── Floating top-right toolbar ── */}
         <div className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 bg-[#161918]/90 backdrop-blur-lg p-1 rounded-2xl border border-[#2A2E2C] shadow-2xl">
-          <button
-            onClick={() => setIsPhotoMode(true)}
-            className="btn-primary text-xs py-2 px-3 shadow-md flex items-center gap-1.5 cursor-pointer font-bold active:scale-95 rounded-xl"
-          >
-            <CameraIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">+ Lapor Foto AI</span>
-            <span className="sm:hidden">Foto AI</span>
-          </button>
-
           <button
             onClick={() => { setIsPinMode(!isPinMode); setPinLocation(null); }}
             className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer border ${
@@ -250,7 +301,7 @@ export default function InteractiveMap({
           style={{ height: '100%', width: '100%' }}
           zoomControl={false}
         >
-          <MapControlsHelper onRegisterFlyTo={handleRegisterFlyTo} />
+          <MapControlsHelper onRegisterFlyTo={handleRegisterFlyTo} sidebarOpen={isSidebarOpen} />
           <BoundsWatcher onBoundsChange={onBoundsChange} />
           <MapClickHandler isPinMode={isPinMode} onMapClick={handleMapClick} />
 
@@ -263,20 +314,13 @@ export default function InteractiveMap({
 
           <MarkerClusterGroup chunkedLoading>
             {filteredIssues.map((issue) => (
-              <Marker
+              <IssueMarker
                 key={issue.id}
-                position={[issue.latitude, issue.longitude]}
-                icon={createCustomMarkerIcon({
-                  category: issue.category,
-                  source: issue.source,
-                  durationDays: getDurationDays(issue.reportedAt),
-                  imageUrl: issue.imageUrl,
-                  title: issue.title,
-                })}
-                eventHandlers={{ click: () => handleSelectIssue(issue) }}
-              >
-                <MarkerPopup issue={issue} onViewDetail={handleSelectIssue} />
-              </Marker>
+                issue={issue}
+                isSelected={selectedIssueId === issue.id}
+                onSelect={handleSelectIssue}
+                onViewDetail={handleViewDetail}
+              />
             ))}
           </MarkerClusterGroup>
 
@@ -297,32 +341,11 @@ export default function InteractiveMap({
       </div>
 
       {/* ━━━ 3. MODALS ━━━ */}
-      <ReportDetailModal issue={selectedIssue} onClose={() => setSelectedIssue(null)} />
-      <PhotoReportModal isOpen={isPhotoMode} onClose={() => setIsPhotoMode(false)} />
       <PinReportModal
         pinLocation={pinLocation}
         onClose={() => setPinLocation(null)}
-        onSubmit={({ title, category, description, lat, lng }) => {
-          const newReport: IssueReport = {
-            id: `REPORT-${Date.now().toString().slice(-4)}`,
-            title,
-            description: description || 'Laporan baru ditambahkan via lokasi pin peta.',
-            category,
-            severityScore: 7.5,
-            status: 'new',
-            source: 'citizen',
-            imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800',
-            latitude: lat,
-            longitude: lng,
-            reportedAt: new Date().toISOString(),
-            lastConfirmedAt: new Date().toISOString(),
-            confirmationCount: 1,
-            location: `Koordinat (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-            statusHistory: [
-              { status: 'new', timestamp: new Date().toISOString(), message: 'Laporan baru dibuat melalui lokasi pin peta' },
-            ],
-          };
-          onAddIssue?.(newReport);
+        onSubmit={(issue) => {
+          onAddIssue?.(issue);
           setPinLocation(null);
         }}
       />

@@ -1,80 +1,73 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import Footer from '../components/Footer';
 import type { IssueReport } from '../types';
 import { getDurationDays } from '../utils/dateUtils';
+import { triggerCrawler } from '../services/reportApiService';
 import {
   MapPinIcon,
   CheckIcon,
   SearchIcon,
+  RoadIcon,
+  BridgeIcon,
+  TrashIcon,
+  BuildingIcon,
+  DrainageIcon,
+  AiRobotIcon,
+  UserIcon,
+  CloseIcon,
   SparklesIcon,
+  InfoIcon,
 } from '../components/Icons';
+
+const getCategoryIcon = (category: string, cls = 'w-3.5 h-3.5') => {
+  switch (category) {
+    case 'jalan':
+      return <RoadIcon className={cls} />;
+    case 'jembatan':
+      return <BridgeIcon className={cls} />;
+    case 'sampah':
+      return <TrashIcon className={cls} />;
+    case 'bangunan':
+      return <BuildingIcon className={cls} />;
+    case 'drainase':
+      return <DrainageIcon className={cls} />;
+    default:
+      return null;
+  }
+};
 
 interface TransparencyPageProps {
   issues: IssueReport[];
   onSelectIssueOnMap?: (issue: IssueReport) => void;
-  onNavigateToMap?: () => void;
 }
-
-interface ApbdProject {
-  id: string;
-  projectName: string;
-  agency: string;
-  budgetAllocated: string;
-  fiscalYear: string;
-  statusField: 'Mangkrak / Tidak Ada Progres' | 'Progres Lambat' | 'Dalam Pengerjaan' | 'Selesai';
-  matchedLocation: string;
-  daysNeglected: number;
-}
-
-const SAMPLE_APBD_DATA: ApbdProject[] = [
-  {
-    id: 'APBD-DKI-2024-041',
-    projectName: 'Rehabilitasi Saluran Drainase & Gorong-gorong Senayan-Palmerah',
-    agency: 'Dinas Sumber Daya Air DKI Jakarta',
-    budgetAllocated: 'Rp 4.250.000.000',
-    fiscalYear: '2024 / 2025',
-    statusField: 'Mangkrak / Tidak Ada Progres',
-    matchedLocation: 'Senayan, Jakarta Pusat',
-    daysNeglected: 142,
-  },
-  {
-    id: 'APBD-DKI-2024-118',
-    projectName: 'Perbaikan Jembatan Penyeberangan & Penguatan Struktur Ciliwung',
-    agency: 'Dinas Bina Marga DKI Jakarta',
-    budgetAllocated: 'Rp 1.800.000.000',
-    fiscalYear: '2024',
-    statusField: 'Progres Lambat',
-    matchedLocation: 'Sungai Ciliwung, Jakarta Pusat',
-    daysNeglected: 98,
-  },
-  {
-    id: 'APBD-DKI-2024-302',
-    projectName: 'Pengaspalan Ulang & Penambalan Lubang Jalur Cepat Sudirman',
-    agency: 'Dinas Bina Marga DKI Jakarta',
-    budgetAllocated: 'Rp 2.100.000.000',
-    fiscalYear: '2025',
-    statusField: 'Dalam Pengerjaan',
-    matchedLocation: 'Jalan Sudirman, Jakarta Selatan',
-    daysNeglected: 45,
-  },
-  {
-    id: 'APBD-BKS-2024-089',
-    projectName: 'Pengelolaan TPA & Pengangkutan Sampah Terpadu Jalur Barat',
-    agency: 'Dinas Lingkungan Hidup Kota Bekasi',
-    budgetAllocated: 'Rp 3.400.000.000',
-    fiscalYear: '2024',
-    statusField: 'Mangkrak / Tidak Ada Progres',
-    matchedLocation: 'Taman Anggrek, Jakarta Barat',
-    daysNeglected: 74,
-  },
-];
 
 export default function TransparencyPage({
   issues,
-  onNavigateToMap,
 }: TransparencyPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTab, setSelectedTab] = useState<'leaderboard' | 'apbd' | 'crawler'>('leaderboard');
   const [exportToast, setExportToast] = useState<string | null>(null);
+  const [showRagModal, setShowRagModal] = useState(false);
+  const [isCrawling, setIsCrawling] = useState(false);
+  const [crawlToast, setCrawlToast] = useState<string | null>(null);
+
+  const handleTriggerCrawler = async () => {
+    setIsCrawling(true);
+    setCrawlToast(null);
+    try {
+      await triggerCrawler();
+      setCrawlToast('Crawler berhasil di-trigger, berjalan di background.');
+    } catch (err) {
+      setCrawlToast(
+        err instanceof Error ? err.message : 'Gagal memicu crawler',
+      );
+    } finally {
+      setIsCrawling(false);
+      setTimeout(() => setCrawlToast(null), 4000);
+    }
+  };
+
 
   // Sort issues by duration neglected (longest first)
   const rankedIssues = useMemo(() => {
@@ -143,22 +136,22 @@ export default function TransparencyPage({
   };
 
   return (
-    <div className="min-h-screen bg-[#0D0F0E] text-[#F2F2F0] pt-24 pb-20 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto space-y-8">
+    <div className="min-h-screen bg-[#0D0F0E] text-[#F2F2F0] flex flex-col justify-between">
+      <div className="max-w-7xl mx-auto w-full pt-28 pb-24 px-4 sm:px-6 lg:px-8 space-y-8">
         {/* Header Title Section */}
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-[#2A2E2C] pb-6">
           <div>
             <div className="flex items-center gap-2 mb-2">
               <span className="w-6 h-px bg-[#2E7D32]" />
               <span className="text-xs font-semibold uppercase tracking-wider text-[#81C784] font-mono">
-                OPEN DATA & AKUNTABILITAS PUBLIK
+                DATA & KETERBUKAAN INFORMASI PUBLIK
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold font-heading text-[#F2F2F0]">
-              Transparansi & Pelacak Anggaran
+              Data & Transparansi Infrastruktur
             </h1>
             <p className="text-sm text-[#9BA39E] max-w-2xl mt-1.5 leading-relaxed">
-              Pantau durasi infrastruktur yang dibiarkan mangkrak, cross-reference data alokasi APBD pemerintah, serta ekstraksi isu berita oleh sistem AI otonom.
+              Pantau rekapitulasi data fasilitas publik, publikasi alokasi pembangunan daerah, dan informasi berita terkini secara terpadu.
             </p>
           </div>
 
@@ -190,17 +183,17 @@ export default function TransparencyPage({
         {/* Telemetry Highlight Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C] shadow-lg">
-            <div className="text-xs text-[#9BA39E] font-medium mb-1">Total Titik Terdata</div>
+            <div className="text-xs text-[#9BA39E] font-medium mb-1">Total Fasilitas Terdata</div>
             <div className="text-2xl font-bold font-heading text-[#81C784]">{issues.length} Lokasi</div>
-            <div className="text-[11px] text-[#9BA39E] mt-1 font-mono">Jabodetabek Coverage</div>
+            <div className="text-[11px] text-[#9BA39E] mt-1 font-mono">Wilayah Jawa Barat</div>
           </div>
           <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C] shadow-lg">
-            <div className="text-xs text-[#9BA39E] font-medium mb-1">Mangkrak Terlama</div>
-            <div className="text-2xl font-bold font-heading text-rose-400">
+            <div className="text-xs text-[#9BA39E] font-medium mb-1">Pemantauan Terlama</div>
+            <div className="text-2xl font-bold font-heading text-amber-400">
               {rankedIssues[0]?.durationDays || 0} Hari
             </div>
-            <div className="text-[11px] text-[#9BA39E] mt-1 truncate">
-              {rankedIssues[0]?.title || '-'}
+            <div className="text-[11px] text-[#9BA39E] mt-1 font-mono">
+              Infrastruktur Publik
             </div>
           </div>
           <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C] shadow-lg">
@@ -210,10 +203,88 @@ export default function TransparencyPage({
               {aiStats.totalAi} Berita Media Terdeteksi
             </div>
           </div>
-          <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C] shadow-lg">
-            <div className="text-xs text-[#9BA39E] font-medium mb-1">Total Anggaran Terhubung</div>
-            <div className="text-2xl font-bold font-heading text-amber-300">Rp 11,55 M</div>
-            <div className="text-[11px] text-[#9BA39E] mt-1 font-mono">SatuData Jakarta APBD</div>
+          <div
+            onClick={() => setShowRagModal(true)}
+            className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C] hover:border-amber-400/50 shadow-lg cursor-pointer transition-all group"
+          >
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-[#9BA39E] font-medium mb-1">Alokasi Anggaran Terdata</div>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/15 text-amber-300 border border-amber-400/30 font-mono">
+                RAG DEV
+              </span>
+            </div>
+            <div className="text-2xl font-bold font-heading text-amber-300">Rp 0</div>
+            <div className="text-[11px] text-[#9BA39E] mt-1 font-mono flex items-center gap-1.5 group-hover:text-amber-300 transition-colors">
+              <span>Fitur RAG Dalam Pengembangan</span>
+              <InfoIcon className="w-3 h-3 text-amber-300" />
+            </div>
+          </div>
+        </div>
+
+        {/* ── Data Provenance & Integrity Notice Banner ── */}
+        <div className="p-6 sm:p-7 rounded-2xl bg-[#161918] border border-[#2E7D32]/40 shadow-xl space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#2A2E2C]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#1B5E20]/30 border border-[#2E7D32]/50 text-[#81C784] flex items-center justify-center flex-shrink-0">
+                <CheckIcon className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold font-heading text-[#F2F2F0]">
+                  Integritas & Akuntabilitas Sumber Data Fixora
+                </h2>
+                <p className="text-xs text-[#81C784] font-medium">
+                  Perlu Digarisbawahi: Seluruh data dihimpun secara terverifikasi dari sumber resmi dan terbuka
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] px-3 py-1 rounded-full bg-[#0D0F0E] text-[#9BA39E] border border-[#2A2E2C] self-start sm:self-auto font-mono">
+              3 Saluran Resmi
+            </span>
+          </div>
+
+          <p className="text-xs sm:text-sm text-[#9BA39E] leading-relaxed">
+            Fixora <strong className="text-[#F2F2F0]">tidak pernah mengumpulkan atau menampilkan data secara asal</strong>. Setiap laporan yang tertera pada sistem memiliki rekam jejak sumber yang jelas, dapat ditelusuri keasliannya, dan mengacu pada 3 kanal resmi berikut:
+          </p>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
+            {/* Source 1: Laporan Warga */}
+            <div className="p-4 rounded-xl bg-[#0D0F0E] border border-[#2A2E2C] space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#F2F2F0]">
+                <div className="w-7 h-7 rounded-lg bg-[#1B5E20]/30 text-[#81C784] flex items-center justify-center flex-shrink-0">
+                  <UserIcon className="w-4 h-4" />
+                </div>
+                <span>1. Laporan Partisipasi Warga</span>
+              </div>
+              <p className="text-xs text-[#9BA39E] leading-relaxed">
+                Diambil langsung dari masyarakat dengan bukti koordinat GPS aktual dan foto dokumentasi lapangan, lalu diverifikasi sebelum ditayangkan.
+              </p>
+            </div>
+
+            {/* Source 2: Data Pemerintah */}
+            <div className="p-4 rounded-xl bg-[#0D0F0E] border border-[#2A2E2C] space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#F2F2F0]">
+                <div className="w-7 h-7 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center flex-shrink-0">
+                  <BuildingIcon className="w-4 h-4" />
+                </div>
+                <span>2. Portal Resmi Pemerintah</span>
+              </div>
+              <p className="text-xs text-[#9BA39E] leading-relaxed">
+                Bersumber dari basis data keterbukaan informasi publik, SatuData, LPSE pengadaan, dan publikasi dinas terkait untuk memastikan akurasi data.
+              </p>
+            </div>
+
+            {/* Source 3: AI Media Crawler */}
+            <div className="p-4 rounded-xl bg-[#0D0F0E] border border-[#2A2E2C] space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-[#F2F2F0]">
+                <div className="w-7 h-7 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
+                  <AiRobotIcon className="w-4 h-4" />
+                </div>
+                <span>3. Media Pers Terdaftar (AI)</span>
+              </div>
+              <p className="text-xs text-[#9BA39E] leading-relaxed">
+                AI Crawler Fixora memfilter secara ketat dan <strong className="text-[#F2F2F0]">hanya mengindeks portal berita nasional resmi</strong> (seperti Kompas.com, Detik.com, Antara News, Kumparan, dll.) lengkap dengan tautan artikel asli sebagai bukti otentik.
+              </p>
+            </div>
           </div>
         </div>
 
@@ -227,17 +298,23 @@ export default function TransparencyPage({
                 : 'text-[#9BA39E] hover:text-[#F2F2F0]'
             }`}
           >
-            Leaderboard Titik Mangkrak Terlama
+            Daftar Pemantauan Fasilitas
           </button>
           <button
-            onClick={() => setSelectedTab('apbd')}
-            className={`py-2 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+            onClick={() => {
+              setSelectedTab('apbd');
+              setShowRagModal(true);
+            }}
+            className={`py-2 px-4 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
               selectedTab === 'apbd'
                 ? 'bg-[#2E7D32]/30 text-[#81C784] border border-[#2E7D32]/50'
                 : 'text-[#9BA39E] hover:text-[#F2F2F0]'
             }`}
           >
-            Korelasi Anggaran APBD
+            <span>Data Pembangunan Daerah</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 font-mono font-normal">
+              RAG DEV
+            </span>
           </button>
           <button
             onClick={() => setSelectedTab('crawler')}
@@ -247,7 +324,7 @@ export default function TransparencyPage({
                 : 'text-[#9BA39E] hover:text-[#F2F2F0]'
             }`}
           >
-            Feed AI News Crawler
+            Publikasi Berita Terkini
           </button>
         </div>
 
@@ -311,12 +388,25 @@ export default function TransparencyPage({
                               <span>{item.location || 'Lokasi Terdaftar'}</span>
                             </div>
                           </td>
-                          <td className="py-3.5 px-4 uppercase text-[11px] font-semibold text-[#81C784]">
-                            {item.category}
+                          <td className="py-3.5 px-4">
+                            <span className="inline-flex items-center gap-1.5 uppercase text-[11px] font-semibold text-[#81C784]">
+                              {getCategoryIcon(item.category)}
+                              <span>{item.category}</span>
+                            </span>
                           </td>
                           <td className="py-3.5 px-4">
-                            <span className="px-2 py-0.5 rounded-full text-[11px] font-medium bg-[#0D0F0E] border border-[#2A2E2C] text-[#9BA39E]">
-                              {item.source === 'citizen' ? 'Laporan Warga' : 'AI Media Crawler'}
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-[#0D0F0E] border border-[#2A2E2C] text-[#9BA39E]">
+                              {item.source === 'citizen' ? (
+                                <>
+                                  <UserIcon className="w-3.5 h-3.5 text-[#81C784]" />
+                                  <span>Laporan Warga</span>
+                                </>
+                              ) : (
+                                <>
+                                  <AiRobotIcon className="w-3.5 h-3.5 text-[#81C784]" />
+                                  <span>AI Media Crawler</span>
+                                </>
+                              )}
                             </span>
                           </td>
                           <td className="py-3.5 px-4 font-mono text-xs">
@@ -326,12 +416,12 @@ export default function TransparencyPage({
                             warga
                           </td>
                           <td className="py-3.5 px-4 text-right whitespace-nowrap">
-                            <button
-                              onClick={onNavigateToMap}
-                              className="py-1 px-3 rounded-lg bg-[#2E7D32]/25 hover:bg-[#2E7D32]/45 text-[#81C784] border border-[#2E7D32]/40 text-xs font-semibold transition-all cursor-pointer"
+                            <Link
+                              to={`/laporan/${item.id}`}
+                              className="py-1 px-3 rounded-lg bg-[#2E7D32]/25 hover:bg-[#2E7D32]/45 text-[#81C784] border border-[#2E7D32]/40 text-xs font-semibold transition-all cursor-pointer inline-block"
                             >
-                              Lihat di Peta →
-                            </button>
+                              Lihat Detail →
+                            </Link>
                           </td>
                         </tr>
                       );
@@ -345,53 +435,45 @@ export default function TransparencyPage({
 
         {/* TAB 2: KORELASI APBD TRACKER */}
         {selectedTab === 'apbd' && (
-          <div className="space-y-4 animate-fadeIn">
-            <div className="p-4 rounded-2xl bg-[#1B5E20]/20 border border-[#2E7D32]/35 text-xs text-[#81C784] leading-relaxed">
-              <strong>Catatan Metodologi:</strong> Data di bawah mengkorelasikan proyek rehabilitasi pada dokumen APBD terbuka (SatuData Jakarta) dengan titik laporan aktual di lapangan yang belum terselesaikan sesuai target tahun anggaran.
+          <div className="space-y-6 animate-fadeIn">
+            <div className="p-5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-200/90 leading-relaxed flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-md">
+              <div>
+                <strong className="text-amber-300 flex items-center gap-1.5 mb-1 text-sm">
+                  <SparklesIcon className="w-4 h-4 text-amber-300" />
+                  <span>Fitur Sinkronisasi Anggaran (RAG Pipeline) Sedang Dikembangkan</span>
+                </strong>
+                <span>Seluruh data nominal alokasi anggaran daerah saat ini dinonaktifkan sementara (Rp 0) untuk memastikan validitas sebelum modul parser resmi diluncurkan.</span>
+              </div>
+              <button
+                onClick={() => setShowRagModal(true)}
+                className="py-2 px-4 rounded-xl bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 border border-amber-400/40 text-xs font-semibold whitespace-nowrap cursor-pointer transition-all self-start sm:self-auto shadow-sm"
+              >
+                Lihat Detail Pengumuman →
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {SAMPLE_APBD_DATA.map((proj) => (
-                <div
-                  key={proj.id}
-                  className="p-5 rounded-2xl bg-[#161918] border border-[#2A2E2C] space-y-3 shadow-lg"
+            {/* Clean Empty State */}
+            <div className="py-16 px-6 rounded-3xl bg-[#161918] border border-[#2A2E2C] text-center max-w-2xl mx-auto space-y-4 shadow-xl">
+              <div className="w-16 h-16 rounded-3xl bg-[#1B5E20]/20 border border-[#2E7D32]/40 text-[#81C784] flex items-center justify-center mx-auto shadow-inner">
+                <SparklesIcon className="w-8 h-8 text-[#81C784]" />
+              </div>
+              <div className="space-y-1.5">
+                <h3 className="text-lg font-bold font-heading text-[#F2F2F0]">
+                  Belum Ada Data Anggaran Terhubung
+                </h3>
+                <p className="text-xs sm:text-sm text-[#9BA39E] max-w-md mx-auto leading-relaxed">
+                  Modul pencocokan data anggaran pembangunan daerah (APBD/APBN) dengan laporan warga sedang dalam proses integrasi teknologi AI RAG.
+                </p>
+              </div>
+              <div className="pt-2">
+                <button
+                  onClick={() => setShowRagModal(true)}
+                  className="py-2.5 px-5 rounded-xl bg-[#2E7D32]/25 hover:bg-[#2E7D32]/45 text-[#81C784] border border-[#2E7D32]/50 text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
                 >
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <span className="text-[11px] font-mono text-[#9BA39E]">
-                        {proj.id} • TA {proj.fiscalYear}
-                      </span>
-                      <h3 className="text-sm sm:text-base font-bold text-[#F2F2F0] mt-0.5">
-                        {proj.projectName}
-                      </h3>
-                    </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/35 whitespace-nowrap">
-                      {proj.statusField}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-[#2A2E2C]">
-                    <div>
-                      <span className="text-[#9BA39E] block text-[11px]">Dinas Terkait:</span>
-                      <strong className="text-[#F2F2F0]">{proj.agency}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[#9BA39E] block text-[11px]">Alokasi Anggaran:</span>
-                      <strong className="text-amber-300 font-mono">{proj.budgetAllocated}</strong>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between text-xs pt-2 border-t border-[#2A2E2C]">
-                    <span className="text-[#9BA39E] flex items-center gap-1">
-                      <MapPinIcon className="w-3.5 h-3.5 text-[#81C784]" />
-                      {proj.matchedLocation}
-                    </span>
-                    <span className="font-mono text-rose-400 font-bold">
-                      ⏱ {proj.daysNeglected} hari tanpa penyelesaian
-                    </span>
-                  </div>
-                </div>
-              ))}
+                  <SparklesIcon className="w-3.5 h-3.5" />
+                  <span>Pelajari Status Pengembangan RAG</span>
+                </button>
+              </div>
             </div>
           </div>
         )}
@@ -400,8 +482,10 @@ export default function TransparencyPage({
         {selectedTab === 'crawler' && (
           <div className="space-y-4 animate-fadeIn">
             <div className="p-4 rounded-2xl bg-[#161918] border border-[#2A2E2C] space-y-3">
-              <div className="flex items-center gap-2">
-                <SparklesIcon className="w-4 h-4 text-[#81C784]" />
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-[#2E7D32]/25 border border-[#2E7D32]/40 flex items-center justify-center text-[#81C784]">
+                  <AiRobotIcon className="w-5 h-5" />
+                </div>
                 <h3 className="text-sm font-bold text-[#F2F2F0]">
                   Sistem AI News Crawler Otonom (US-05)
                 </h3>
@@ -409,6 +493,19 @@ export default function TransparencyPage({
               <p className="text-xs text-[#9BA39E] leading-relaxed">
                 Fixora menjalankan cron job otomatis yang memantau portal media nasional (Kompas, Detik, Antara, Poskota). Setiap artikel yang menyebutkan kerusakan jalan, jembatan, atau banjir diekstrak koordinat lokasi, kategori, dan tingkat keparahannya menggunakan Multimodal LLM Structured JSON.
               </p>
+              <div className="flex items-center gap-3 pt-1">
+                <button
+                  onClick={handleTriggerCrawler}
+                  disabled={isCrawling}
+                  className="py-2 px-4 rounded-xl bg-[#2E7D32]/25 hover:bg-[#2E7D32]/45 text-[#81C784] border border-[#2E7D32]/50 text-xs font-bold transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                >
+                  <AiRobotIcon className="w-3.5 h-3.5" />
+                  <span>{isCrawling ? 'Memicu…' : 'Jalankan Crawler Sekarang'}</span>
+                </button>
+                {crawlToast && (
+                  <span className="text-xs text-[#81C784]">{crawlToast}</span>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -421,8 +518,9 @@ export default function TransparencyPage({
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2 mb-1.5">
-                        <span className="px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/35 text-[10px] font-mono">
-                          SUMBER: MEDIA ONLINE
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/35 text-[10px] font-mono">
+                          <AiRobotIcon className="w-3 h-3 text-blue-300" />
+                          <span>SUMBER: MEDIA ONLINE</span>
                         </span>
                         <span className="text-[11px] font-mono text-[#9BA39E]">
                           {aiItem.reportedAt.slice(0, 10)}
@@ -435,15 +533,16 @@ export default function TransparencyPage({
                     </div>
 
                     <div className="flex items-center justify-between pt-2 border-t border-[#2A2E2C] text-xs">
-                      <span className="text-[#81C784] font-semibold uppercase text-[11px]">
-                        Kategori: {aiItem.category}
+                      <span className="inline-flex items-center gap-1.5 text-[#81C784] font-semibold uppercase text-[11px]">
+                        {getCategoryIcon(aiItem.category)}
+                        <span>Kategori: {aiItem.category}</span>
                       </span>
-                      <button
-                        onClick={onNavigateToMap}
+                      <Link
+                        to="/peta"
                         className="text-[#81C784] hover:underline font-semibold text-xs flex items-center gap-1 cursor-pointer"
                       >
                         Buka di Peta →
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 ))}
@@ -451,6 +550,74 @@ export default function TransparencyPage({
           </div>
         )}
       </div>
+
+      {/* ── RAG FEATURE DEVELOPMENT ANNOUNCEMENT MODAL ── */}
+      {showRagModal && (
+        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-[#0D0F0E]/85 backdrop-blur-md"
+            onClick={() => setShowRagModal(false)}
+          />
+
+          <div className="relative w-full max-w-lg bg-[#161918] border border-[#2E7D32]/50 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-5 animate-slide-up overflow-hidden text-left">
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#81C784] to-transparent" />
+
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-[#1B5E20]/35 border border-[#2E7D32]/50 text-[#81C784] flex items-center justify-center flex-shrink-0 shadow-inner">
+                  <SparklesIcon className="w-6 h-6" />
+                </div>
+                <div>
+                  <span className="text-[11px] font-mono font-bold text-[#81C784] uppercase tracking-wider">
+                    PENGUMUMAN PENGEMBANGAN FITUR
+                  </span>
+                  <h3 className="text-lg font-bold font-heading text-[#F2F2F0] leading-tight mt-0.5">
+                    Integrasi Data Anggaran (RAG) Sedang Dikembangkan
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowRagModal(false)}
+                className="w-8 h-8 rounded-xl bg-[#0D0F0E] hover:bg-[#1F2422] border border-[#2A2E2C] flex items-center justify-center text-[#9BA39E] hover:text-[#F2F2F0] transition-colors cursor-pointer"
+                aria-label="Tutup"
+              >
+                <CloseIcon className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-[#0D0F0E] border border-[#2A2E2C] space-y-2.5 text-xs text-[#9BA39E] leading-relaxed">
+              <p>
+                Fitur sinkronisasi data anggaran pembangunan (APBD/APBN) secara otomatis saat ini <strong className="text-[#F2F2F0]">belum dirilis dan sedang dalam tahap pengembangan aktif</strong> menggunakan teknologi <span className="text-[#81C784] font-mono font-semibold">RAG (Retrieval-Augmented Generation)</span> & Document Parser resmi.
+              </p>
+              <p>
+                Sesuai prinsip transparansi Fixora yang <strong className="text-[#F2F2F0]">tidak menampilkan angka estimasi tanpa verifikasi</strong>, seluruh indikator dana/anggaran di platform Fixora saat ini diset sebesar <strong className="text-amber-300 font-mono font-bold">Rp 0</strong>.
+              </p>
+            </div>
+
+            <div className="space-y-2 text-xs">
+              <div className="flex items-center gap-2 text-[#F2F2F0]">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span><strong>Status Anggaran:</strong> Dinonaktifkan sementara (Rp 0).</span>
+              </div>
+              <div className="flex items-center gap-2 text-[#F2F2F0]">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#81C784]" />
+                <span><strong>Teknologi:</strong> RAG Pipeline + Keterbukaan Informasi Publik.</span>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <button
+                onClick={() => setShowRagModal(false)}
+                className="w-full py-3 px-4 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-xs font-bold font-heading shadow-lg shadow-[#2E7D32]/20 transition-all cursor-pointer"
+              >
+                Saya Mengerti
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Footer />
     </div>
   );
 }

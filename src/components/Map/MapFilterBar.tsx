@@ -1,6 +1,15 @@
 import { useState, useMemo } from 'react';
 import type { IssueCategory } from '../../types';
 import type { FilterState } from './InteractiveMap';
+import {
+  RoadIcon,
+  BridgeIcon,
+  TrashIcon,
+  BuildingIcon,
+  DrainageIcon,
+  AiRobotIcon,
+  UserIcon,
+} from '../Icons';
 
 interface MapFilterBarProps {
   filters: FilterState;
@@ -8,12 +17,15 @@ interface MapFilterBarProps {
 }
 
 const categories: IssueCategory[] = ['jalan', 'jembatan', 'sampah', 'bangunan', 'drainase'];
-const categoryLabels: Record<IssueCategory, string> = {
-  jalan: 'Jalan',
-  jembatan: 'Jembatan',
-  sampah: 'Sampah',
-  bangunan: 'Bangunan',
-  drainase: 'Drainase',
+const categoryConfig: Record<
+  IssueCategory,
+  { label: string; icon: React.ReactNode }
+> = {
+  jalan: { label: 'Jalan', icon: <RoadIcon className="w-3.5 h-3.5" /> },
+  jembatan: { label: 'Jembatan', icon: <BridgeIcon className="w-3.5 h-3.5" /> },
+  sampah: { label: 'Sampah', icon: <TrashIcon className="w-3.5 h-3.5" /> },
+  bangunan: { label: 'Bangunan', icon: <BuildingIcon className="w-3.5 h-3.5" /> },
+  drainase: { label: 'Drainase', icon: <DrainageIcon className="w-3.5 h-3.5" /> },
 };
 
 export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarProps) {
@@ -101,13 +113,14 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
             <button
               key={category}
               onClick={() => toggleCategory(category)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 filters.categories.includes(category)
                   ? 'bg-[#2E7D32] text-[#F2F2F0] border-[#2E7D32]'
                   : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:bg-[#1F2422]'
               }`}
             >
-              {categoryLabels[category]}
+              {categoryConfig[category].icon}
+              <span>{categoryConfig[category].label}</span>
             </button>
           ))}
         </div>
@@ -147,20 +160,21 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
         <h3 className="font-semibold text-[#9BA39E] text-xs uppercase tracking-wider">Filter Sumber Data</h3>
         <div className="flex gap-2 flex-wrap">
           {[
-            { key: 'all' as const, label: 'Semua Data' },
-            { key: 'citizen' as const, label: 'Laporan Warga' },
-            { key: 'ai_media' as const, label: 'Terdeteksi AI' },
+            { key: 'all' as const, label: 'Semua Data', icon: null },
+            { key: 'citizen' as const, label: 'Laporan Warga', icon: <UserIcon className="w-3.5 h-3.5" /> },
+            { key: 'ai_media' as const, label: 'Terdeteksi AI', icon: <AiRobotIcon className="w-3.5 h-3.5" /> },
           ].map((option) => (
             <button
               key={option.key}
               onClick={() => handleFilterChange({ ...filters, source: option.key })}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 filters.source === option.key
                   ? 'bg-[#2E7D32] text-[#F2F2F0] border-[#2E7D32]'
                   : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:bg-[#1F2422]'
               }`}
             >
-              {option.label}
+              {option.icon}
+              <span>{option.label}</span>
             </button>
           ))}
         </div>
