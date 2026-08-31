@@ -1,83 +1,92 @@
-import type { IssueCategory, SeverityLevel, ReportSubmission, IssueReport } from '../types';
-import { mockIssueReports } from './mockData';
+import type {
+  IssueCategory,
+  SeverityLevel,
+  ReportSubmission,
+  IssueReport,
+  BackendSeverity,
+} from '../types';
+import type { ApiCategoryResponse } from '../types/api';
+import {
+  fetchCategories,
+  analyzePhoto as analyzePhotoApi,
+  createReport as createReportApi,
+} from './reportApiService';
+import {
+  slugToCategory,
+  categoryToSlug,
+  severityToBackend,
+  backendSeverityToLevel,
+} from './categoryMapping';
 
-type ClassificationResult = {
-  category: IssueCategory;
-  severity: SeverityLevel;
-  confidence: number;
+export interface AnalyzePhotoResult {
+  sessionId: string;
+  photoUrl: string;
+  title: string;
   description: string;
-};
-
-const CATEGORY_MESSAGES: Record<IssueCategory, string[]> = {
-  jalan: ['jalan rusak/berlubang', 'permukaan jalan retak', 'jalan bergelombang'],
-  jembatan: ['kerusakan jembatan', 'struktur jembatan bermasalah'],
-  sampah: ['penumpukan sampah', 'tempat pembuangan liar'],
-  bangunan: ['bangunan rusak/ambruk', 'fasilitas umum rusak'],
-  drainase: ['saluran tersumbat', 'drainase bocor/meluap'],
-};
-
-const SEVERITY_LABELS: SeverityLevel[] = ['rendah', 'sedang', 'tinggi', 'kritis'];
-
-export async function simulateCvClassifier(imageFile: File): Promise<ClassificationResult> {
-  await new Promise(resolve => setTimeout(resolve, 2200));
-
-  const filename = imageFile.name.toLowerCase();
-  let category: IssueCategory = 'jalan';
-  if (filename.includes('sampah') || filename.includes('trash')) category = 'sampah';
-  else if (filename.includes('jembatan') || filename.includes('bridge')) category = 'jembatan';
-  else if (filename.includes('drainase') || filename.includes('drain')) category = 'drainase';
-  else if (filename.includes('bangunan') || filename.includes('building')) category = 'bangunan';
-  else {
-    const cats: IssueCategory[] = ['jalan', 'jalan', 'sampah', 'drainase', 'jembatan', 'bangunan'];
-    category = cats[Math.floor(Math.random() * cats.length)];
-  }
-
-  const severityIdx = Math.floor(Math.random() * SEVERITY_LABELS.length);
-  const severity = SEVERITY_LABELS[severityIdx];
-  const confidence = Math.round(75 + Math.random() * 20);
-  const msgs = CATEGORY_MESSAGES[category];
-  const description = msgs[Math.floor(Math.random() * msgs.length)];
-
-  return { category, severity, confidence, description };
+  category: IssueCategory;
+  categorySlug: string;
+  severity: SeverityLevel;
+  backendSeverity: BackendSeverity;
 }
 
-let reportCounter = mockIssueReports.length + 1;
+let categoryCache: ApiCategoryResponse[] | null = null;
 
-export function submitReport(data: ReportSubmission): IssueReport {
-  const id = `${String(reportCounter).padStart(3, '0')}-2025`;
-  reportCounter++;
-  const severityScoreMap: Record<SeverityLevel, number> = {
-    rendah: 3,
-    sedang: 6,
-    tinggi: 8,
-    kritis: 10,
+async function getCategoriesCached(): Promise<ApiCategoryResponse[]> {
+  if (!categoryCache) {
+    categoryCache = await fetchCategories();
+  }
+  return categoryCache;
+}
+
+export async function resolveCategoryId(category: IssueCategory): Promise<string> {
+  const slug = categoryToSlug(category);
+  const categories = await getCategoriesCached();
+  const match = categories.find((c) => c.slug === slug);
+  if (!match) {
+    throw new Error(`Kategori "${category}" belum tersedia pada sistem backend`);
+  }
+  return match.id;
+}
+
+/** Analyze a photo via the backend CV classifier (multipart upload). */
+export async function analyzePhoto(file: File): Promise<AnalyzePhotoResult> {
+  const result = await analyzePhotoApi(file);
+  return {
+    sessionId: result.session_id,
+    photoUrl: result.photo_url,
+    title: result.title,
+    description: result.description,
+    category: slugToCategory(result.category),
+    categorySlug: result.category,
+    severity: backendSeverityToLevel(result.severity),
+    backendSeverity: result.severity as BackendSeverity,
   };
+}
 
-  const newReport: IssueReport = {
-    id,
-    title: `Laporan ${data.finalCategory.charAt(0).toUpperCase() + data.finalCategory.slice(1)} — ${data.locationLabel || 'Lokasi tidak diketahui'}`,
-    description: data.description || '',
-    category: data.finalCategory,
-    severityScore: severityScoreMap[data.finalSeverity],
-    status: 'new' as const,
-    source: 'citizen' as const,
-    imageUrl: data.imagePreviewUrl || 'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=800',
-    latitude: data.latitude || -6.2088,
-    longitude: data.longitude || 106.8456,
-    reportedAt: new Date().toISOString(),
-    lastConfirmedAt: new Date().toISOString(),
-    confirmationCount: 1,
-    location: data.locationLabel || 'Lokasi tidak diketahui',
-    statusHistory: [
-      {
-        status: 'new' as const,
-        timestamp: new Date().toISOString(),
-        message: 'Laporan baru diterima. Konfirmasi akan dikirim ke email Anda.',
-      },
-    ],
-  };
+/** Submit a report through `POST /reports/` using a staged photo session. */
+export async function submitReport(data: ReportSubmission): Promise<IssueReport> {
+  if (!data.latitude || !data.longitude) {
+    throw new Error('Lokasi laporan belum ditentukan');
+  }
+  if (!data.stagingSessionId) {
+    throw new Error('Foto belum dianalisis oleh sistem');
+  }
 
-  return newReport;
+  const categoryId = await resolveCategoryId(data.finalCategory);
+
+  const title = (data.title || data.description || 'Laporan Warga').trim().slice(0, 200);
+
+  return createReportApi({
+    category_id: categoryId,
+    title,
+    description: data.description,
+    latitude: data.latitude,
+    longitude: data.longitude,
+    address: data.locationLabel,
+    severity: severityToBackend(data.finalSeverity),
+    staging_session_id: data.stagingSessionId,
+    reporter_email: data.reporterEmail?.trim() || undefined,
+  });
 }
 
 export function getGreeting(): string {
