@@ -263,33 +263,63 @@ body {
   }
 }
 
-.leaflet-popup-content-wrapper,
+.leaflet-popup-content-wrapper {
+  background: #161918 !important;
+  color: #f2f2f0 !important;
+  border: 1px solid #2a2e2c !important;
+  border-radius: 18px !important;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
 .leaflet-popup-tip {
   background: #161918 !important;
   color: #f2f2f0 !important;
   border: 1px solid #2a2e2c !important;
-  box-shadow:
-    0 20px 25px -5px rgba(0, 0, 0, 0.6),
-    0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
 }
 
 .leaflet-popup-tip-container {
   overflow: hidden;
 }
 
-.leaflet-popup-content {
-  margin: 12px 14px !important;
-  line-height: 1.4 !important;
+.leaflet-container a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.leaflet-popup-content a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .leaflet-container a.leaflet-popup-close-button {
   color: #9ba39e !important;
-  padding: 6px 8px 0 0 !important;
-  font-size: 16px !important;
+  background: rgba(13, 15, 14, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 9999px !important;
+  width: 26px !important;
+  height: 26px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  top: 10px !important;
+  right: 10px !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.2s ease !important;
+  z-index: 20 !important;
 }
 
 .leaflet-container a.leaflet-popup-close-button:hover {
   color: #f2f2f0 !important;
+  background: rgba(46, 125, 50, 0.8) !important;
+  border-color: #4caf50 !important;
+  transform: scale(1.08);
 }
 
 .leaflet-fade-anim .leaflet-popup {
@@ -310,4 +340,20 @@ body {
 .marker-wrapper:hover .marker-hover-tooltip {
   opacity: 1 !important;
   pointer-events: auto !important;
+}
+
+/* ── Sidebar slide-in animation ── */
+@keyframes sidebar-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-sidebar-in {
+  animation: sidebar-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
