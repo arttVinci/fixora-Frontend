@@ -376,39 +376,39 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* ── 8. OPEN SOURCE CALL TO ACTION ── */}
+        {/* ── 8. REPOSITORY & CODE SOURCE ── */}
         <div className="p-8 sm:p-10 rounded-3xl bg-gradient-to-r from-[#161918] via-[#141816] to-[#0F1411] border border-[#2E7D32]/40 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="space-y-3 text-center md:text-left">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#1B5E20]/30 border border-[#2E7D32]/40 text-[#81C784] text-xs font-semibold">
-              <CheckIcon className="w-3.5 h-3.5" />
-              <span>Inisiatif Terbuka (Open Source • MIT License)</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#161918] border border-[#2E7D32]/40 text-[#81C784] text-xs font-semibold">
+              <CheckIcon className="w-3.5 h-3.5 shrink-0" />
+              <span>Proyek Open Source</span>
             </div>
-            <h3 className="text-2xl sm:text-3xl font-extrabold text-[#F2F2F0]">
-              Mari Berkontribusi Membangun Fixora
+            <h3 className="text-2xl sm:text-3xl font-extrabold text-[#F2F2F0] tracking-tight">
+              Repositori & Kode Sumber
             </h3>
             <p className="text-sm text-[#9BA39E] max-w-xl leading-relaxed">
-              Fixora adalah platform open source yang terbuka untuk kolaborasi seluruh developer dan aktivis data publik di Indonesia. Kunjungi repositori GitHub untuk submit Pull Request, issue, maupun saran perbaikan.
+              Kode sumber frontend dan backend Fixora terbuka untuk umum di GitHub. Kunjungi repositori untuk melihat arsitektur sistem, berdiskusi, atau mengirimkan saran perbaikan.
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
             <a
               href="https://github.com/arttVinci/fixora-Frontend"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full sm:w-auto py-3.5 px-6 rounded-2xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-bold transition-all shadow-lg flex items-center justify-center gap-2.5 active:scale-95 cursor-pointer border border-[#81C784]/30"
+              className="inline-flex items-center justify-center gap-2.5 px-5 py-3 rounded-xl bg-[#2E7D32] hover:bg-[#1B5E20] text-white text-sm font-semibold transition-all shadow-md active:scale-95 cursor-pointer whitespace-nowrap shrink-0 border border-[#81C784]/30"
             >
-              <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0 fill-current" viewBox="0 0 24 24">
                 <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
               </svg>
-              <span>Berkontribusi di GitHub →</span>
+              <span className="whitespace-nowrap">Lihat di GitHub</span>
             </a>
             <Link
               to="/peta"
-              className="w-full sm:w-auto py-3.5 px-5 rounded-2xl bg-[#161918] hover:bg-[#1F2422] border border-[#2A2E2C] text-[#F2F2F0] text-sm font-semibold transition-all flex items-center justify-center gap-2 cursor-pointer"
+              className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#161918] hover:bg-[#1F2422] border border-[#2A2E2C] text-[#F2F2F0] text-sm font-semibold transition-all cursor-pointer whitespace-nowrap shrink-0"
             >
-              <MapPinIcon className="w-4 h-4 text-[#81C784]" />
-              <span>Buka Peta Radar</span>
+              <MapPinIcon className="w-4 h-4 shrink-0 text-[#81C784]" />
+              <span className="whitespace-nowrap">Buka Peta Radar</span>
             </Link>
           </div>
         </div>
