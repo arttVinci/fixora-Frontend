@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom';
+import { useEffect } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Popup } from 'react-leaflet';
-import type { IssueReport, IssueCategory, IssueStatus, SourceType } from '../../types';
+import type { IssueReport, IssueCategory, SourceType } from '../../types';
 import { getDurationDays } from '../../utils/dateUtils';
 import {
   MapPinIcon,
@@ -51,31 +52,7 @@ const categoryConfig: Record<
   },
 };
 
-const statusConfig: Record<
-  IssueStatus,
-  { label: string; dotClass: string; badgeClass: string }
-> = {
-  open: {
-    label: 'Sedang Berlangsung',
-    dotClass: 'bg-rose-400 animate-pulse',
-    badgeClass: 'bg-rose-500/15 text-rose-300 border-rose-500/30',
-  },
-  new: {
-    label: 'Menunggu Verifikasi',
-    dotClass: 'bg-amber-400 animate-pulse',
-    badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
-  },
-  closed: {
-    label: 'Telah Ditangani',
-    dotClass: 'bg-emerald-400',
-    badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
-  },
-  archived: {
-    label: 'Diarsipkan',
-    dotClass: 'bg-slate-400',
-    badgeClass: 'bg-slate-500/15 text-slate-300 border-slate-500/30',
-  },
-};
+import { getStatusBadge } from '../../utils/statusUtils';
 
 const sourceConfig: Record<
   SourceType,
@@ -124,11 +101,22 @@ function getSeverityBadge(severityScore: number) {
 }
 
 export default function MarkerPopup({ issue, onViewDetail }: MarkerPopupProps) {
+  const location = useLocation();
   const durationDays = getDurationDays(issue.reportedAt);
   const isCritical = durationDays > 30 || issue.severityScore >= 8;
 
+  // When navigating to the detail page the popup would otherwise stay open
+  // over the map (the marker leaves the map but the popup is a map overlay).
+  useEffect(() => {
+    if (location.pathname.startsWith('/laporan/')) {
+      document
+        .querySelector('.leaflet-popup-close-button')
+        ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    }
+  }, [location.pathname]);
+
   const category = categoryConfig[issue.category] || categoryConfig.jalan;
-  const status = statusConfig[issue.status] || statusConfig.open;
+  const status = getStatusBadge(issue.status);
   const source = sourceConfig[issue.source] || sourceConfig.citizen;
   const severity = getSeverityBadge(issue.severityScore);
 
@@ -284,7 +272,14 @@ export default function MarkerPopup({ issue, onViewDetail }: MarkerPopupProps) {
           <div className="pt-1">
             <Link
               to={`/laporan/${issue.id}`}
-              onClick={() => onViewDetail?.(issue)}
+              onClick={() => {
+                onViewDetail?.(issue);
+                // Close the popup immediately instead of waiting for the route
+                // to unmount the map; leaves no stale overlay behind.
+                document
+                  .querySelector('.leaflet-popup-close-button')
+                  ?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+              }}
               className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-[#2E7D32] to-[#1B5E20] hover:from-[#388E3C] hover:to-[#2E7D32] !text-white text-xs font-bold font-heading shadow-[0_4px_18px_rgba(46,125,50,0.35)] flex items-center justify-center gap-2 transition-all active:scale-[0.98] group cursor-pointer border border-[#81C784]/40"
             >
               <span className="!text-white font-bold text-xs tracking-wide">
