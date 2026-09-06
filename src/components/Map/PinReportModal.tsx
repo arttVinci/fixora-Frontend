@@ -100,6 +100,16 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
 
     try {
       const analysis = await analyzePhoto(photoFile);
+
+      if (!analysis.isRelevant) {
+        setSubmitError(
+          'Foto tidak terdeteksi sebagai kerusakan infrastruktur. Silakan unggah foto lain yang jelas menunjukkan kerusakan.',
+        );
+        setPhotoFile(null);
+        setPhotoPreview('');
+        return;
+      }
+
       const issue = await submitReport({
         reporterName: 'Warga Anonim',
         reporterEmail: '',
