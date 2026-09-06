@@ -22,10 +22,18 @@ export default function AnalyticsSection({ issues = [] }: AnalyticsSectionProps)
 
   const stats = useMemo(() => {
     const total = issues.length;
-
-    const countNew = issues.filter((i) => i.status === 'new').length;
-    const countOpen = issues.filter((i) => i.status === 'open').length;
-    const countClosed = issues.filter((i) => i.status === 'closed').length;
+    const countClosed = issues.filter((i) => {
+      const s = i.status?.toLowerCase().trim();
+      return s === 'resolved' || s === 'closed' || s === 'selesai';
+    }).length;
+    const countNew = issues.filter((i) => {
+      const s = i.status?.toLowerCase().trim();
+      return s === 'pending_verification' || s === 'new';
+    }).length;
+    const countOpen = issues.filter((i) => {
+      const s = i.status?.toLowerCase().trim();
+      return s === 'in_progress' || s === 'open' || s === 'verified';
+    }).length;
 
     const resRate = total > 0 ? Math.round((countClosed / total) * 100) : 0;
 
