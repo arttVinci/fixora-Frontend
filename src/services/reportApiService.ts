@@ -30,22 +30,6 @@ function sourceToSourceType(source: string): SourceType {
   return 'ai_media';
 }
 
-function mapStatus(status: string): IssueReport['status'] {
-  const statusMap: Record<string, IssueReport['status']> = {
-    pending_verification: 'new',
-    new: 'new',
-    verified: 'open',
-    open: 'open',
-    in_progress: 'open',
-    resolved: 'closed',
-    closed: 'closed',
-    rejected: 'archived',
-    merged: 'archived',
-    archived: 'archived',
-  };
-  return statusMap[status.toLowerCase()] ?? 'new';
-}
-
 function toIssueReport(api: ApiReportMapResponse): IssueReport {
   return {
     id: api.id,
@@ -54,8 +38,7 @@ function toIssueReport(api: ApiReportMapResponse): IssueReport {
     categorySlug: api.category_slug,
     severityScore: severityToScore(api.severity),
     severity: api.severity,
-    status: mapStatus(api.status),
-    rawStatus: api.status,
+    status: api.status,
     source: sourceToSourceType(api.source),
     rawSource: api.source,
     imageUrl: api.photo_url || undefined,
@@ -64,19 +47,11 @@ function toIssueReport(api: ApiReportMapResponse): IssueReport {
     reportedAt: new Date().toISOString(),
     lastConfirmedAt: new Date().toISOString(),
     confirmationCount: 0,
-    statusHistory: [
-      {
-        status: mapStatus(api.status),
-        timestamp: new Date().toISOString(),
-        message: 'Data diambil dari backend.',
-      },
-    ],
   };
 }
 
 export function toDetailIssueReport(api: ApiReportDetailResponse): IssueReport {
   const cat = slugToCategory(api.category_slug);
-  const status = mapStatus(api.status);
   const source = sourceToSourceType(api.source);
   const reportedAt = api.first_reported_at || new Date().toISOString();
   const lastConfirmedAt = api.last_confirmed_at || reportedAt;
@@ -90,8 +65,7 @@ export function toDetailIssueReport(api: ApiReportDetailResponse): IssueReport {
     categorySlug: api.category_slug,
     severityScore: severityToScore(api.severity || 'sedang'),
     severity: api.severity,
-    status,
-    rawStatus: api.status,
+    status: api.status,
     source,
     rawSource: api.source,
     sourceUrl: api.source_url,
@@ -107,25 +81,9 @@ export function toDetailIssueReport(api: ApiReportDetailResponse): IssueReport {
     confirmationCount: Number(api.total_confirmations) || 0,
     totalConfirmations: Number(api.total_confirmations) || 0,
     mergedIntoId: api.merged_into_id,
-    statusHistory: [
-      {
-        status: 'new',
-        timestamp: reportedAt,
-        message: 'Laporan pertama kali tercatat di sistem Fixora.',
-      },
-      ...(status !== 'new'
-        ? [
-            {
-              status,
-              timestamp: lastConfirmedAt,
-              message:
-                status === 'closed'
-                  ? 'Infrastruktur telah selesai ditangani dan diverifikasi.'
-                  : 'Laporan diverifikasi oleh komunitas dan dalam pemantauan aktif.',
-            },
-          ]
-        : []),
-    ],
+    relatedReports: api.related_reports
+      ? api.related_reports.map(toIssueReport)
+      : undefined,
   };
 }
 
