@@ -8,6 +8,8 @@ import {
   ShieldCheckIcon,
   AiRobotIcon,
   ClockIcon,
+  CheckIcon,
+  CloseIcon,
 } from '../Icons';
 
 const STATUS_META: Record<
@@ -79,8 +81,20 @@ function AgentLogRow({ log }: { log: ApiVerificationLogResponse }) {
       <div className="min-w-0 flex-1 space-y-0.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-bold text-[#F2F2F0]">{role}</span>
-          <span className={`text-[10px] font-bold ${verdictColor}`}>
-            {log.verdict === true ? '✓ Setuju' : log.verdict === false ? '✗ Tolak' : '— Abstain'}
+          <span className={`inline-flex items-center gap-1 text-[10px] font-bold ${verdictColor}`}>
+            {log.verdict === true ? (
+              <>
+                <CheckIcon className="w-3 h-3" />
+                <span>Setuju</span>
+              </>
+            ) : log.verdict === false ? (
+              <>
+                <CloseIcon className="w-3 h-3" />
+                <span>Tolak</span>
+              </>
+            ) : (
+              <span>Abstain</span>
+            )}
           </span>
           <span className="text-[10px] font-mono text-[#9BA39E]">
             {log.confidence}% • {log.latency_ms}ms
