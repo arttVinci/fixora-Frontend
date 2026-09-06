@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { CloseIcon } from '../Icons';
 
 type SummaryStats = {
   total: number;
@@ -17,11 +18,12 @@ export default function StatSummaryBar({ stats }: StatSummaryBarProps) {
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="absolute bottom-4 left-4 z-[1000] bg-[#161918]/95 text-[#F2F2F0] rounded-full shadow-xl px-4 py-2.5 flex items-center gap-2 font-bold hover:bg-[#1F2422] transition-all border border-[#2A2E2C]"
+        className="absolute bottom-4 left-4 z-[1000] backdrop-blur-xl bg-[#161918]/90 text-[#F2F2F0] p-3 rounded-2xl shadow-xl border border-[#2A2E2C] hover:border-[#2E7D32] hover:bg-[#1F2422] transition-all flex items-center gap-2 group cursor-pointer"
+        title="Buka Ringkasan"
       >
-        <span className="text-xs font-semibold">Statistik</span>
-        <span className="bg-[#2E7D32] text-[#F2F2F0] text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
-          {stats.total}
+        <span className="w-2.5 h-2.5 rounded-full bg-[#81C784] animate-pulse"></span>
+        <span className="text-xs font-semibold">
+          {stats.total} Laporan Terpantau
         </span>
       </button>
     );
@@ -33,9 +35,9 @@ export default function StatSummaryBar({ stats }: StatSummaryBarProps) {
         <h3 className="text-base font-bold text-[#F2F2F0]">Ringkasan Laporan</h3>
         <button
           onClick={() => setIsExpanded(false)}
-          className="text-[#9BA39E] hover:text-[#F2F2F0] hover:bg-[#1F2422] rounded-full p-1.5 transition-all text-xs"
+          className="text-[#9BA39E] hover:text-[#F2F2F0] hover:bg-[#1F2422] rounded-full p-1.5 transition-all text-xs cursor-pointer"
         >
-          ✕
+          <CloseIcon className="w-3.5 h-3.5" />
         </button>
       </div>
       <div className="flex flex-col gap-3">
