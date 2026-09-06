@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import Footer from '../components/Footer';
 import type { IssueReport } from '../types';
 import { getDurationDays } from '../utils/dateUtils';
+import { getStatusBadge } from '../utils/statusUtils';
 import { triggerCrawler } from '../services/reportApiService';
 import {
   MapPinIcon,
@@ -383,9 +384,14 @@ export default function TransparencyPage({
                             <div className="font-semibold text-[#F2F2F0] max-w-sm sm:max-w-md">
                               {item.title}
                             </div>
-                            <div className="text-[11px] text-[#9BA39E] flex items-center gap-1 mt-0.5">
-                              <MapPinIcon className="w-3 h-3 text-[#81C784]" />
-                              <span>{item.location || 'Lokasi Terdaftar'}</span>
+                            <div className="text-[11px] text-[#9BA39E] flex items-center gap-2 mt-1">
+                              <span className="flex items-center gap-1">
+                                <MapPinIcon className="w-3 h-3 text-[#81C784]" />
+                                <span>{item.location || 'Lokasi Terdaftar'}</span>
+                              </span>
+                              <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full border font-semibold ${getStatusBadge(item.status).badge}`}>
+                                {getStatusBadge(item.status).label}
+                              </span>
                             </div>
                           </td>
                           <td className="py-3.5 px-4">
