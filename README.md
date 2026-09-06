@@ -264,20 +264,8 @@ VITE_API_BASE_URL=https://api.portofy.net/api
 
 **Fixora** dirancang dan dibangun oleh:
 
-<table>
-  <tr>
-    <td align="center">
-      <strong>Putra Rizky Nugraha</strong><br/>
-      Full-stack Developer<br/>
-      <em>Arsitektur sistem, backend Go, dan frontend React</em>
-    </td>
-    <td align="center">
-      <strong>Muhammad Fadhil Sevano</strong><br/>
-      Developer<br/>
-      <em>Pengembangan fitur dan UI/UX</em>
-    </td>
-  </tr>
-</table>
+- [Putra Rizky Nugraha](https://github.com/arttVinci)
+- [Muhammad Fadhil Sevano](https://github.com/MFSevanoo)
 
 ---
 
