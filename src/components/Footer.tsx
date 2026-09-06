@@ -23,7 +23,7 @@ export default function Footer() {
               Platform open source transparansi alokasi APBD dan pelacakan infrastruktur mangkrak untuk akuntabilitas publik Indonesia.
             </p>
             <div className="text-xs text-[#81C784] font-mono">
-              MIT Open Source Software
+              Open Source
             </div>
           </div>
 
@@ -84,7 +84,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href="https://github.com"
+                  href="https://github.com/arttVinci/fixora-Frontend"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-[#9BA39E] hover:text-[#81C784] transition-colors"
@@ -109,7 +109,7 @@ export default function Footer() {
 
         <div className="mt-12 pt-8 border-t border-[#2A2E2C] flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-[#9BA39E] text-xs">
-            © 2026 Fixora — Open Source Infrastructure Neglect Tracker (MIT License).
+            © 2026 Fixora — Open Source Infrastructure Neglect Tracker.
           </p>
           <p className="text-[#9BA39E]/80 text-xs font-mono">
             Didedikasikan untuk transparansi & keterbukaan data Indonesia
