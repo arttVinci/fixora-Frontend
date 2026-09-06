@@ -41,8 +41,6 @@ function App() {
         if (!cancelled) {
           console.warn("[Fixora] Gagal memuat data laporan dari backend.", err);
         }
-      } catch {
-        // Fallback to mock issues if API is unreachable
       }
     }
 
