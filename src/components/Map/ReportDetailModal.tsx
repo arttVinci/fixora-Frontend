@@ -31,12 +31,7 @@ const sourceLabels: Record<string, { label: string; icon: React.ReactNode }> = {
   ai_media: { label: 'Terdeteksi AI (Media)', icon: <AiRobotIcon className="w-3.5 h-3.5 text-[#81C784]" /> },
 };
 
-const statusConfig: Record<string, { label: string; badge: string }> = {
-  new: { label: 'Menunggu Verifikasi', badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' },
-  open: { label: 'Sedang Berlangsung', badge: 'bg-rose-500/20 text-rose-300 border border-rose-500/40' },
-  closed: { label: 'Telah Ditangani', badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' },
-  archived: { label: 'Diarsipkan', badge: 'bg-[#161918] text-[#9BA39E] border border-[#2A2E2C]' },
-};
+import { getStatusBadge } from '../../utils/statusUtils';
 
 interface ReportDetailModalProps {
   issue: IssueReport | null;
@@ -66,7 +61,7 @@ export default function ReportDetailModal({ issue, onClose, onConfirmIssue }: Re
 
   if (!issue) return null;
 
-  const status = statusConfig[issue.status] || statusConfig.new;
+  const status = getStatusBadge(issue.status);
   const durationDays = getDurationDays(issue.reportedAt);
 
   const handleConfirm = () => {
