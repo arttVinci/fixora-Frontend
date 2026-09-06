@@ -159,8 +159,8 @@ export default function HowItWorksSection() {
                           alt="Thumbnail"
                           className="w-full h-full object-cover"
                         />
-                        <button className="absolute top-1 right-1 w-4 h-4 bg-[#161918]/80 text-white rounded-full flex items-center justify-center text-[10px]">
-                          ✕
+                        <button className="absolute top-1 right-1 w-4 h-4 bg-[#161918]/80 text-white rounded-full flex items-center justify-center text-[10px] cursor-pointer">
+                          <CloseIcon className="w-2.5 h-2.5" />
                         </button>
                       </div>
 
