@@ -7,6 +7,7 @@ import {
   CheckIcon,
   CloseIcon,
   SparklesIcon,
+  InfoIcon,
 } from '../Icons';
 
 interface PhotoReportModalProps {
@@ -169,9 +170,9 @@ export default function PhotoReportModal({ isOpen, onClose }: PhotoReportModalPr
                       <div className="text-xs text-[#9BA39E] space-y-1">
                         <p>atau melalui seret & lepas · {uploadedPhotos.length}/3</p>
                         <p className="text-[#9BA39E]/80 text-[11px]">Dilarang memotret orang/plat nomor kendaraan.</p>
-                        <p className="text-[#9BA39E] text-[11px] flex items-center justify-center gap-1">
+                        <p className="text-[#9BA39E] text-[11px] flex items-center justify-center gap-1.5">
                           <span>Analisis melalui Fixora AI (Indonesia)</span>
-                          <span className="cursor-pointer text-[#9BA39E]">ⓘ</span>
+                          <InfoIcon className="w-3.5 h-3.5 text-[#9BA39E]" />
                         </p>
                       </div>
 
