@@ -69,8 +69,10 @@ export default function Navbar() {
     <>
       <nav
         className={`${
-          isMapPage ? "relative" : "fixed top-0 left-0 right-0"
-        } z-50 transition-all duration-300 flex-shrink-0 ${
+          isMapPage ? "relative w-full" : "fixed top-0 left-0 right-0"
+        } ${
+          isMobileMenuOpen ? "z-[5001]" : "z-50"
+        } transition-all duration-300 flex-shrink-0 ${
           isScrolled || isMobileMenuOpen || isMapPage
             ? "bg-[#0D0F0E]/95 py-3 backdrop-blur-xl border-b border-[#2A2E2C]"
             : "bg-gradient-to-b from-[#0D0F0E]/90 to-transparent py-4"
@@ -178,7 +180,7 @@ export default function Navbar() {
 
       {/* Mobile Drawer Menu */}
       {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-40 bg-[#0D0F0E]/98 pt-20 px-6 pb-8 flex flex-col justify-between md:hidden animate-fadeIn backdrop-blur-2xl">
+        <div className="fixed inset-0 z-[5000] bg-[#0D0F0E]/98 pt-20 px-6 pb-8 flex flex-col justify-between md:hidden animate-fadeIn backdrop-blur-2xl overflow-y-auto">
           <div className="space-y-3 pt-4">
             {navLinks.map((link) => {
               const isActive = getIsActive(link.path);

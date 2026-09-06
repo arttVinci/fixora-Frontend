@@ -12,6 +12,8 @@ import {
   CloseIcon,
   SendIcon,
   CameraIcon,
+  ClockIcon,
+  GooglePlayIcon,
 } from '../Icons';
 
 export interface PinLocation {
@@ -102,9 +104,10 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
       const analysis = await analyzePhoto(photoFile);
 
       if (!analysis.isRelevant) {
-        setSubmitError(
-          'Foto tidak terdeteksi sebagai kerusakan infrastruktur. Silakan unggah foto lain yang jelas menunjukkan kerusakan.',
-        );
+        const errorReason = analysis.reason?.trim()
+          ? (analysis.reason.charAt(0).toUpperCase() + analysis.reason.slice(1))
+          : (analysis.description || 'Foto tidak terdeteksi sebagai kerusakan infrastruktur. Silakan unggah foto lain yang jelas menunjukkan kerusakan.');
+        setSubmitError(`Foto ditolak: ${errorReason}`);
         setPhotoFile(null);
         setPhotoPreview('');
         return;
@@ -277,6 +280,25 @@ export default function PinReportModal({ pinLocation, onClose, onSubmit }: PinRe
             <label className="text-xs font-semibold text-[#9BA39E] uppercase tracking-wider mb-1.5 block font-mono">
               Foto Bukti <span className="text-[#81C784]">*</span>
             </label>
+
+            {/* Timestamp Camera Announcement */}
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2.5 text-xs mb-2.5">
+              <ClockIcon className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-1">
+                <p className="text-xs text-[#F2F2F0] font-medium leading-tight">
+                  <strong className="text-amber-300">Wajib Timestamp Camera:</strong> Foto harus memuat stempel tanggal, jam & lokasi.
+                </p>
+                <a
+                  href="https://play.google.com/store/apps/details?id=com.jeyluta.timestampcamerafree"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] text-[#81C784] hover:underline font-semibold"
+                >
+                  <GooglePlayIcon className="w-3.5 h-3.5" />
+                  <span>Unduh Timestamp Camera di Play Store ↗</span>
+                </a>
+              </div>
+            </div>
             <input
               ref={fileInputRef}
               type="file"

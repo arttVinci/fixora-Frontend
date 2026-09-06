@@ -23,6 +23,8 @@ import {
   DrainageIcon,
   CloseIcon,
   AlertTriangleIcon,
+  GooglePlayIcon,
+  ClockIcon,
 } from '../components/Icons';
 
 interface CreateReportPageProps {
@@ -99,7 +101,10 @@ export default function CreateReportPage({ onReportSubmitted }: CreateReportPage
       const result = await analyzePhoto(file);
 
       if (!result.isRelevant) {
-        setErrorMessage('Foto yang Anda unggah tidak terdeteksi sebagai kerusakan fasilitas publik. Silakan unggah foto lain.');
+        const errorReason = result.reason?.trim()
+          ? (result.reason.charAt(0).toUpperCase() + result.reason.slice(1))
+          : (result.description || 'Foto yang Anda unggah tidak terdeteksi sebagai kerusakan fasilitas publik. Silakan unggah foto lain.');
+        setErrorMessage(`Foto ditolak: ${errorReason}`);
         setSelectedFile(null);
         setPhotoPreview(null);
         setStagingSessionId(null);
@@ -385,6 +390,38 @@ export default function CreateReportPage({ onReportSubmitted }: CreateReportPage
               <p className="text-xs sm:text-sm text-[#9BA39E] leading-relaxed">
                 Pilih atau seret foto fasilitas publik yang rusak. Sistem AI kami akan mendeteksi kategori kerusakan dan mengunci koordinat GPS tanpa pengisian formulir manual.
               </p>
+            </div>
+
+            {/* Timestamp Camera Announcement Banner */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-500/10 via-[#161918] to-[#161918] border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-400 flex-shrink-0 mt-0.5">
+                  <ClockIcon className="w-5 h-5" />
+                </div>
+                <div className="space-y-1 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                      Wajib
+                    </span>
+                    <h3 className="text-sm font-bold text-[#F2F2F0]">
+                      Gunakan Foto dengan Timestamp Camera
+                    </h3>
+                  </div>
+                  <p className="text-xs text-[#9BA39E] leading-relaxed">
+                    Foto laporan wajib memiliki stempel tanggal, waktu, dan koordinat lokasi (GPS watermark) agar AI Fixora dapat memverifikasi dan memetakan laporan secara akurat.
+                  </p>
+                </div>
+              </div>
+              <a
+                href="https://play.google.com/store/apps/details?id=com.jeyluta.timestampcamerafree"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex-shrink-0 px-4 py-2.5 rounded-xl bg-[#0D0F0E] hover:bg-[#1F2422] border border-[#2A2E2C] hover:border-[#81C784] text-[#F2F2F0] hover:text-[#81C784] text-xs font-semibold flex items-center gap-2 transition-all shadow-md group cursor-pointer self-stretch sm:self-auto justify-center"
+              >
+                <GooglePlayIcon className="w-4 h-4" />
+                <span>Unduh di Play Store</span>
+                <span className="text-[#9BA39E] group-hover:translate-x-0.5 transition-transform text-xs">↗</span>
+              </a>
             </div>
 
             {/* Hidden File Input */}

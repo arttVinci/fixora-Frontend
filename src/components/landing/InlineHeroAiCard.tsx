@@ -23,6 +23,8 @@ import {
   CloseIcon,
   MapIcon,
   ReportIcon,
+  GooglePlayIcon,
+  ClockIcon,
 } from "../Icons";
 
 type Step =
@@ -193,7 +195,7 @@ export default function InlineHeroAiCard({
       {
         id: `ai-${Date.now() + 1}`,
         sender: "ai",
-        text: "Nanti foto Anda akan dianalisis AI, lokasi dideteksi otomatis, lalu diverifikasi sebelum tayang.\n\nSilakan masukkan atau pilih foto masalah infrastruktur:",
+        text: "PENTING: Foto wajib menggunakan Timestamp Camera (memiliki stempel tanggal, waktu, dan lokasi GPS).\n\nSilakan masukkan atau pilih foto masalah infrastruktur:",
         step: "photo_prompt",
       },
     ]);
@@ -218,7 +220,7 @@ export default function InlineHeroAiCard({
       {
         id: `ai-${Date.now() + 1}`,
         sender: "ai",
-        text: `Baik, saya catat deskripsi awal: "${text}".\n\nNanti foto Anda akan dianalisis AI, lokasi dideteksi otomatis, lalu diverifikasi sebelum tayang.\n\nSilakan upload foto masalahnya:`,
+        text: `Baik, saya catat deskripsi awal: "${text}".\n\n⚠️ PENTING: Foto wajib menggunakan Timestamp Camera (memiliki stempel tanggal, waktu, & lokasi GPS).\n\nSilakan upload foto masalahnya:`,
         step: "photo_prompt",
       },
     ]);
@@ -254,12 +256,29 @@ export default function InlineHeroAiCard({
         setStagingSessionId(null);
         setImagePreview(null);
         setStep("photo_prompt");
+
+        const reasonText = result.reason?.trim();
+        const descText = result.description?.trim();
+
+        let rejectionMessage = "Maaf, foto yang Anda unggah tidak tampak menunjukkan kerusakan infrastruktur yang bisa dilaporkan.";
+        if (reasonText) {
+          const formattedReason = reasonText.charAt(0).toUpperCase() + reasonText.slice(1);
+          rejectionMessage = `Maaf, foto yang Anda unggah ditolak: ${formattedReason}.`;
+          if (descText && descText.toLowerCase() !== reasonText.toLowerCase()) {
+            rejectionMessage += `\n\nCatatan AI: ${descText}`;
+          }
+        } else if (descText) {
+          rejectionMessage = `Maaf, foto yang Anda unggah ditolak: ${descText}.`;
+        }
+
+        rejectionMessage += "\n\nSilakan unggah ulang foto yang sesuai, atau klik 'Bersihkan Chat' untuk mulai dari awal.";
+
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== "ai-classifying"),
           {
             id: `ai-${Date.now()}`,
             sender: "ai",
-            text: "Maaf, foto yang Anda unggah tidak tampak menunjukkan kerusakan infrastruktur yang bisa dilaporkan. Silakan unggah ulang foto lain, atau klik 'Bersihkan Chat' untuk mulai dari awal.",
+            text: rejectionMessage,
             step: "photo_prompt",
           },
         ]);
@@ -629,21 +648,44 @@ export default function InlineHeroAiCard({
                 {msg.step === "photo_prompt" &&
                   isLatest &&
                   step === "photo_prompt" && (
-                    <div className="mt-3.5 flex items-center gap-2.5">
-                      <button
-                        onClick={() => fileInputRef.current?.click()}
-                        className="bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/60 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
-                      >
-                        <CameraIcon className="w-4 h-4" />
-                        <span>Pilih / Ambil Foto</span>
-                      </button>
-                      <button
-                        onClick={handleResetFlow}
-                        className="text-[#9BA39E] hover:text-[#F2F2F0] text-xs font-medium px-2 py-1.5 transition-colors flex items-center gap-1 cursor-pointer"
-                      >
-                        <CloseIcon className="w-3.5 h-3.5" />
-                        <span>Bersihkan Chat</span>
-                      </button>
+                    <div className="mt-3.5 space-y-3">
+                      {/* Timestamp Camera Announcement Box */}
+                      <div className="p-3 rounded-xl bg-[#161918]/90 border border-amber-500/35 text-xs space-y-2">
+                        <div className="flex items-center gap-2 text-amber-300 font-bold">
+                          <ClockIcon className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                          <span>Penting: Wajib Foto Timestamp</span>
+                        </div>
+                        <p className="text-[#9BA39E] text-[11.5px] leading-relaxed">
+                          Foto harus memiliki watermark tanggal, jam, dan lokasi GPS. Belum punya aplikasinya?
+                        </p>
+                        <a
+                          href="https://play.google.com/store/apps/details?id=com.jeyluta.timestampcamerafree"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0D0F0E] hover:bg-[#1F2422] border border-[#2A2E2C] hover:border-[#81C784] text-[#81C784] font-semibold text-[11px] transition-all group"
+                        >
+                          <GooglePlayIcon className="w-3.5 h-3.5" />
+                          <span>Unduh Timestamp Camera di Play Store</span>
+                          <span className="text-[10px] text-[#9BA39E] group-hover:translate-x-0.5 transition-transform">↗</span>
+                        </a>
+                      </div>
+
+                      <div className="flex items-center gap-2.5">
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/60 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
+                        >
+                          <CameraIcon className="w-4 h-4" />
+                          <span>Pilih / Ambil Foto</span>
+                        </button>
+                        <button
+                          onClick={handleResetFlow}
+                          className="text-[#9BA39E] hover:text-[#F2F2F0] text-xs font-medium px-2 py-1.5 transition-colors flex items-center gap-1 cursor-pointer"
+                        >
+                          <CloseIcon className="w-3.5 h-3.5" />
+                          <span>Bersihkan Chat</span>
+                        </button>
+                      </div>
                     </div>
                   )}
 

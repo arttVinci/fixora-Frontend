@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import * as maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
+
+maplibregl.setWorkerUrl(workerUrl);
 
 const FIXORA_REPORTS_GEOJSON: GeoJSON.FeatureCollection = {
   type: 'FeatureCollection',

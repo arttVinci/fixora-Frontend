@@ -772,3 +772,15 @@ export function ChevronDownIcon({ className = "w-5 h-5" }: { className?: string 
   );
 }
 
+export function GooglePlayIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24">
+      <path fill="#4285F4" d="M3.609 1.814L13.792 12 3.61 22.186c-.37-.28-.59-.72-.59-1.218V3.35c0-.498.22-.938.59-1.218.18-.136.39-.244.609-.318z"/>
+      <path fill="#EA4335" d="M17.345 10.054L7.359 4.289l7.502 8.249 2.484-2.484z"/>
+      <path fill="#FBBC04" d="M17.345 13.946l-2.484-2.484-7.502 8.249 9.986-5.765z"/>
+      <path fill="#34A853" d="M17.345 10.054l3.414 1.97c.72.416.72 1.458 0 1.874l-3.414 1.97-1.897-1.897 1.897-1.897z"/>
+    </svg>
+  );
+}
+
+
