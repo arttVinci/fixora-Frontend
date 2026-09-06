@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { IssueReport, IssueCategory } from '../../types';
 import { getDurationDays } from '../../utils/dateUtils';
+import { isUnresolvedStatus } from '../../utils/reportStats';
 import {
   MapPinIcon,
   SearchIcon,
@@ -11,6 +12,7 @@ import {
   DrainageIcon,
   AiRobotIcon,
   ClockIcon,
+  CloseIcon,
 } from '../Icons';
 
 const categoryLabels: Record<
@@ -82,7 +84,7 @@ export default function MapSidebar({
     return true;
   });
 
-  const totalActive = issues.filter((i) => i.status === 'open' || i.status === 'new').length;
+  const totalActive = issues.filter((i) => isUnresolvedStatus(i.status)).length;
 
   /* ══════════════════════════════════════════════
      MINIMIZED STATE: Floating pill button
@@ -160,7 +162,7 @@ export default function MapSidebar({
               onClick={() => setSearch('')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-[#9BA39E] hover:text-[#F2F2F0] cursor-pointer"
             >
-              ✕
+              <CloseIcon className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
