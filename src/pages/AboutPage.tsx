@@ -129,10 +129,6 @@ export default function AboutPage() {
         
         {/* ── 1. HERO SECTION ── */}
         <div className="relative border-b border-[#2A2E2C] pb-12 space-y-5">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#161918] border border-[#2E7D32]/40 text-[#81C784] text-xs font-semibold">
-            <span className="w-2 h-2 rounded-full bg-[#81C784] animate-pulse" />
-            <span className="font-mono tracking-wider uppercase">Open Source Software • Inisiatif Transparansi Publik</span>
-          </div>
 
           <h1 className="text-3xl sm:text-5xl lg:text-6xl font-extrabold text-[#F2F2F0] tracking-tight leading-[1.15]">
             Akuntabilitas Jangka Panjang untuk{' '}
