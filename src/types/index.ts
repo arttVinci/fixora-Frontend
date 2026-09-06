@@ -1,5 +1,5 @@
 export type IssueCategory = 'jalan' | 'jembatan' | 'sampah' | 'bangunan' | 'drainase';
-export type IssueStatus = 'new' | 'open' | 'closed' | 'archived';
+export type IssueStatus = string;
 export type SourceType = 'citizen' | 'ai_media' | 'government_data';
 export type SeverityLevel = 'rendah' | 'sedang' | 'tinggi' | 'kritis';
 export type BackendSeverity = 'ringan' | 'sedang' | 'parah';
@@ -23,7 +23,7 @@ export interface ReportSubmission {
 }
 
 export interface StatusHistory {
-  status: IssueStatus;
+  status: string;
   timestamp: string;
   message: string;
 }
@@ -37,8 +37,7 @@ export interface IssueReport {
   categorySlug?: string;
   severityScore: number;
   severity?: string;
-  status: IssueStatus;
-  rawStatus?: string;
+  status: string;
   source: SourceType;
   rawSource?: string;
   sourceUrl?: string | null;
@@ -54,5 +53,6 @@ export interface IssueReport {
   location?: string;
   address?: string;
   mergedIntoId?: string | null;
-  statusHistory: StatusHistory[];
+  relatedReports?: IssueReport[];
+  statusHistory?: StatusHistory[];
 }
