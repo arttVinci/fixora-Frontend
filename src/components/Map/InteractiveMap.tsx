@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { MapBounds } from '../../types/api';
 import {
@@ -10,8 +10,6 @@ import {
 } from '../Icons';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet.markercluster';
-import MarkerClusterGroup from 'react-leaflet-cluster';
 import type { IssueReport, IssueCategory, SourceType } from '../../types';
 import { createCustomMarkerIcon } from './CustomMarker';
 import MarkerPopup from './MarkerPopup';
@@ -46,7 +44,7 @@ function MapControlsHelper({
   sidebarOpen,
 }: {
   onRegisterFlyTo: (
-    flyFn: (lat: number, lng: number) => void,
+    flyFn: (lat: number, lng: number, zoom?: number) => void,
     zoomInFn: () => void,
     zoomOutFn: () => void
   ) => void;
@@ -55,17 +53,21 @@ function MapControlsHelper({
   const map = useMap();
   useEffect(() => {
     onRegisterFlyTo(
-      (lat, lng) => {
+      (lat, lng, targetZoom) => {
+        // Keep current zoom if already zoomed in further, otherwise use at least zoom 16
+        const currentZoom = map.getZoom();
+        const zoom = targetZoom ?? (currentZoom > 15 ? currentZoom : 16);
+
         // Offset to account for:
         // 1. Floating sidebar covering the left side (horizontal)
         // 2. Popup opening above the marker needs room (vertical)
-        const SIDEBAR_WIDTH = 400; // sidebar ~380px + padding
-        const POPUP_HEIGHT_OFFSET = 200; // push map center up so tall popup has room
+        const SIDEBAR_WIDTH = 390; // sidebar ~380px + padding
+        const POPUP_HEIGHT_OFFSET = 120; // push map center up slightly so popup fits comfortably
         const xOffset = sidebarOpen ? SIDEBAR_WIDTH / 2 : 0;
-        const targetPoint = map.project([lat, lng], 15);
+        const targetPoint = map.project([lat, lng], zoom);
         const offsetPoint = L.point(targetPoint.x - xOffset, targetPoint.y - POPUP_HEIGHT_OFFSET);
-        const offsetLatLng = map.unproject(offsetPoint, 15);
-        map.flyTo(offsetLatLng, 15, { animate: true });
+        const offsetLatLng = map.unproject(offsetPoint, zoom);
+        map.flyTo(offsetLatLng, zoom, { animate: true, duration: 0.8 });
       },
       () => map.zoomIn(),
       () => map.zoomOut()
@@ -105,28 +107,73 @@ function MapClickHandler({
   return null;
 }
 
+// Reveals a pending sidebar-selected marker once the map settles after its fly
+// animation. `moveend` fires when the fly completes, so zoomToShowLayer runs
+// against the settled view (instead of racing the animation with a timer).
+function MapSettleReveal({
+  pendingRevealRef,
+  onReveal,
+}: {
+  pendingRevealRef: { current: string | null };
+  onReveal: (id: string) => void;
+}) {
+  useMapEvents({
+    moveend() {
+      const id = pendingRevealRef.current;
+      if (!id) return;
+      pendingRevealRef.current = null;
+      onReveal(id);
+    },
+  });
+  return null;
+}
+
 /* ── Marker with auto-open popup ──────────────────────────── */
 
-function IssueMarker({
+const IssueMarker = memo(function IssueMarker({
   issue,
   isSelected,
   onSelect,
   onViewDetail,
+  registerMarker,
+  unregisterMarker,
 }: {
   issue: IssueReport;
   isSelected: boolean;
   onSelect: (issue: IssueReport) => void;
   onViewDetail: (issue: IssueReport) => void;
+  registerMarker: (id: string, marker: L.Marker | null) => void;
+  unregisterMarker: (id: string) => void;
 }) {
   const markerRef = useRef<L.Marker>(null);
 
+  const markerIcon = useMemo(() => {
+    return createCustomMarkerIcon({
+      category: issue.category,
+      source: issue.source,
+      durationDays: getDurationDays(issue.reportedAt),
+      imageUrl: issue.imageUrl,
+      title: issue.title,
+    });
+  }, [issue.category, issue.source, issue.reportedAt, issue.imageUrl, issue.title]);
+
+  // Register the raw Leaflet marker instance so the cluster group can resolve
+  // and reveal it (zoom/spiderfy) when a report is selected.
   useEffect(() => {
-    if (isSelected && markerRef.current) {
-      // Wait for flyTo animation to settle before opening popup
-      const timer = setTimeout(() => {
-        markerRef.current?.openPopup();
-      }, 800);
-      return () => clearTimeout(timer);
+    registerMarker(issue.id, markerRef.current);
+    return () => unregisterMarker(issue.id);
+  }, [issue.id, registerMarker, unregisterMarker]);
+
+  // Keep the popup state in sync when selection changes externally:
+  // opening/closing the popup only affects the map, so a re-render here would
+  // just re-run Leaflet's own popup toggling.
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+    if (isSelected) {
+      if (!marker.isPopupOpen()) marker.openPopup();
+    } else if (marker.isPopupOpen()) {
+      marker.closePopup();
     }
   }, [isSelected]);
 
@@ -134,19 +181,27 @@ function IssueMarker({
     <Marker
       ref={markerRef}
       position={[issue.latitude, issue.longitude]}
-      icon={createCustomMarkerIcon({
-        category: issue.category,
-        source: issue.source,
-        durationDays: getDurationDays(issue.reportedAt),
-        imageUrl: issue.imageUrl,
-        title: issue.title,
-      })}
-      eventHandlers={{ click: () => onSelect(issue) }}
+      icon={markerIcon}
+      eventHandlers={{
+        click(e) {
+          // CRITICAL: Stop the click from bubbling to the map. leaflet.markercluster
+          // registers a map-level 'click' handler (_unspiderfyWrapper) that collapses
+          // any currently spiderfied cluster. Without this, clicking a spiderfied
+          // child marker triggers that handler, re-clustering all the pins and
+          // hiding the popup before the user can see it.
+          L.DomEvent.stopPropagation(e.originalEvent);
+
+          // Open the popup first so Leaflet binds it to this marker; the popup
+          // otherwise stays bound to the cluster/spiderfied position.
+          e.target.openPopup();
+          onSelect(issue);
+        },
+      }}
     >
       <MarkerPopup issue={issue} onViewDetail={onViewDetail} />
     </Marker>
   );
-}
+});
 
 /* ── Main component ───────────────────────────────────────── */
 
@@ -164,10 +219,10 @@ export default function InteractiveMap({
   const [selectedCategory, setSelectedCategory] = useState<IssueCategory | 'all'>('all');
   const [selectedDuration, setSelectedDuration] = useState<'all' | 'lt30' | 'gt30' | 'gt90'>('all');
 
-  const flyToRef = useRef<((lat: number, lng: number) => void) | null>(null);
+  const flyToRef = useRef<((lat: number, lng: number, zoom?: number) => void) | null>(null);
   const zoomInRef = useRef<(() => void) | null>(null);
   const zoomOutRef = useRef<(() => void) | null>(null);
-  const flyToFn = useCallback((lat: number, lng: number) => flyToRef.current?.(lat, lng), []);
+  const flyToFn = useCallback((lat: number, lng: number, zoom?: number) => flyToRef.current?.(lat, lng, zoom), []);
   const zoomInFn = useCallback(() => zoomInRef.current?.(), []);
   const zoomOutFn = useCallback(() => zoomOutRef.current?.(), []);
 
@@ -177,7 +232,7 @@ export default function InteractiveMap({
   }, []);
 
   const handleRegisterFlyTo = useCallback(
-    (fly: (lat: number, lng: number) => void, inFn: () => void, outFn: () => void) => {
+    (fly: (lat: number, lng: number, zoom?: number) => void, inFn: () => void, outFn: () => void) => {
       flyToRef.current = fly; zoomInRef.current = inFn; zoomOutRef.current = outFn;
     }, []
   );
@@ -189,25 +244,68 @@ export default function InteractiveMap({
     iconAnchor: [18, 36],
   });
 
-  const filteredIssues = issues.filter((issue) => {
-    if (selectedCategory !== 'all' && issue.category !== selectedCategory) return false;
-    const d = getDurationDays(issue.reportedAt);
-    if (selectedDuration === 'lt30' && d >= 30) return false;
-    if (selectedDuration === 'gt30' && d < 30) return false;
-    if (selectedDuration === 'gt90' && d < 90) return false;
-    return true;
-  });
+  const filteredIssues = useMemo(
+    () =>
+      issues.filter((issue) => {
+        if (selectedCategory !== 'all' && issue.category !== selectedCategory) return false;
+        const d = getDurationDays(issue.reportedAt);
+        if (selectedDuration === 'lt30' && d >= 30) return false;
+        if (selectedDuration === 'gt30' && d < 30) return false;
+        if (selectedDuration === 'gt90' && d < 90) return false;
+        return true;
+      }),
+    [issues, selectedCategory, selectedDuration]
+  );
 
   const navigate = useNavigate();
 
-  const handleSelectIssue = (issue: IssueReport) => {
-    setSelectedIssueId(issue.id);
-    flyToFn(issue.latitude, issue.longitude);
-  };
+  // Raw Leaflet marker instances, keyed by report id, so cluster-group actions
+  // (revealing/spiderfying) can resolve the marker even when it is hidden
+  // inside a cluster.
+  //
+  // The registry is maintained purely by IssueMarker mount/unmount lifecycle:
+  // a marker registers when it mounts and unregisters when it unmounts, so
+  // filtered-out/removed/merged reports drop out automatically. There is no
+  // bulk clear — an effect here would run after the children's register
+  // effects (React runs child effects first) and wipe valid entries.
+  const markerRegistryRef = useRef<Map<string, L.Marker | null>>(new Map());
 
-  const handleViewDetail = (issue: IssueReport) => {
+  const registerMarker = useCallback((id: string, marker: L.Marker | null) => {
+    markerRegistryRef.current.set(id, marker);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref is stable
+  }, []);
+
+  const unregisterMarker = useCallback((id: string) => {
+    markerRegistryRef.current.delete(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref is stable
+  }, []);
+
+  // Id of a report selected from the sidebar whose marker still needs to be
+  // revealed once the map finishes flying to it.
+  const pendingRevealRef = useRef<string | null>(null);
+
+  // Called when clicking directly on a marker on the map - DO NOT trigger flyTo so spiderfied clusters stay open
+  const handleMarkerClick = useCallback((issue: IssueReport) => {
+    setSelectedIssueId(issue.id);
+  }, []);
+
+  // Reveal a marker when selected from the sidebar: open its popup once map settles
+  const revealMarker = useCallback((id: string) => {
+    const marker = markerRegistryRef.current.get(id);
+    if (!marker) return;
+    if (!marker.isPopupOpen()) marker.openPopup();
+  }, []);
+
+  // Called when selecting an item from the sidebar list - flies to marker and opens popup
+  const handleSidebarSelectIssue = useCallback((issue: IssueReport) => {
+    setSelectedIssueId(issue.id);
+    pendingRevealRef.current = issue.id;
+    flyToFn(issue.latitude, issue.longitude);
+  }, [flyToFn]);
+
+  const handleViewDetail = useCallback((issue: IssueReport) => {
     navigate(`/laporan/${issue.id}`);
-  };
+  }, [navigate]);
 
   const handleLocateMe = () => {
     if (!navigator.geolocation) return;
@@ -229,7 +327,7 @@ export default function InteractiveMap({
       <MapSidebar
         issues={issues}
         totalIssues={issues.length}
-        onSelectIssue={handleSelectIssue}
+        onSelectIssue={handleSidebarSelectIssue}
         selectedIssueId={selectedIssueId}
         selectedCategory={selectedCategory}
         onSelectCategory={setSelectedCategory}
@@ -304,6 +402,7 @@ export default function InteractiveMap({
           <MapControlsHelper onRegisterFlyTo={handleRegisterFlyTo} sidebarOpen={isSidebarOpen} />
           <BoundsWatcher onBoundsChange={onBoundsChange} />
           <MapClickHandler isPinMode={isPinMode} onMapClick={handleMapClick} />
+          <MapSettleReveal pendingRevealRef={pendingRevealRef} onReveal={revealMarker} />
 
           <TileLayer
             attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://openstreetmap.org">OSM</a>'
@@ -312,17 +411,17 @@ export default function InteractiveMap({
 
           <HeatmapLayer issues={filteredIssues} enabled={isHeatmapEnabled} theme={mapTheme} />
 
-          <MarkerClusterGroup chunkedLoading>
-            {filteredIssues.map((issue) => (
-              <IssueMarker
-                key={issue.id}
-                issue={issue}
-                isSelected={selectedIssueId === issue.id}
-                onSelect={handleSelectIssue}
-                onViewDetail={handleViewDetail}
-              />
-            ))}
-          </MarkerClusterGroup>
+          {filteredIssues.map((issue) => (
+            <IssueMarker
+              key={issue.id}
+              issue={issue}
+              isSelected={selectedIssueId === issue.id}
+              onSelect={handleMarkerClick}
+              onViewDetail={handleViewDetail}
+              registerMarker={registerMarker}
+              unregisterMarker={unregisterMarker}
+            />
+          ))}
 
           {pinLocation && (
             <Marker
