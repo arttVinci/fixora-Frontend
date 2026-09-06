@@ -249,15 +249,44 @@ export default function InlineHeroAiCard({
 
     try {
       const result = await analyzePhoto(file);
+
+      if (!result.isRelevant) {
+        setStagingSessionId(null);
+        setImagePreview(null);
+        setStep("photo_prompt");
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== "ai-classifying"),
+          {
+            id: `ai-${Date.now()}`,
+            sender: "ai",
+            text: "Maaf, foto yang Anda unggah tidak tampak menunjukkan kerusakan infrastruktur yang bisa dilaporkan. Silakan unggah ulang foto lain, atau klik 'Bersihkan Chat' untuk mulai dari awal.",
+            step: "photo_prompt",
+          },
+        ]);
+        return;
+      }
+
       setStagingSessionId(result.sessionId);
 
       setDraft({
         title: result.title,
-        description: result.description,
+        description: result.description || result.reason || 'Kerusakan terdeteksi oleh AI',
         category: result.category,
         severity: result.severity,
         confidence: 90,
       });
+
+      if (result.latitude != null && !isNaN(Number(result.latitude))) {
+        setLatitude(Number(result.latitude));
+      }
+      if (result.longitude != null && !isNaN(Number(result.longitude))) {
+        setLongitude(Number(result.longitude));
+      }
+      if (result.address) {
+        setLocationLabel(result.address);
+      } else if (result.location) {
+        setLocationLabel(result.location);
+      }
 
       setStep("review_data");
       setMessages((prev) => [
@@ -600,13 +629,20 @@ export default function InlineHeroAiCard({
                 {msg.step === "photo_prompt" &&
                   isLatest &&
                   step === "photo_prompt" && (
-                    <div className="mt-3.5">
+                    <div className="mt-3.5 flex items-center gap-2.5">
                       <button
                         onClick={() => fileInputRef.current?.click()}
                         className="bg-[#2E7D32]/30 hover:bg-[#2E7D32]/50 text-[#81C784] border border-[#2E7D32]/60 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all active:scale-95 flex items-center gap-1.5 shadow-sm cursor-pointer"
                       >
                         <CameraIcon className="w-4 h-4" />
                         <span>Pilih / Ambil Foto</span>
+                      </button>
+                      <button
+                        onClick={handleResetFlow}
+                        className="text-[#9BA39E] hover:text-[#F2F2F0] text-xs font-medium px-2 py-1.5 transition-colors flex items-center gap-1 cursor-pointer"
+                      >
+                        <CloseIcon className="w-3.5 h-3.5" />
+                        <span>Bersihkan Chat</span>
                       </button>
                     </div>
                   )}
