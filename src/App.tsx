@@ -6,6 +6,7 @@ import MapPage from "./pages/MapPage";
 import TransparencyPage from "./pages/TransparencyPage";
 import AboutPage from "./pages/AboutPage";
 import ReportDetailPage from "./pages/ReportDetailPage";
+import CreateReportPage from "./pages/CreateReportPage";
 
 import { fetchMapReports } from "./services/reportApiService";
 import type { IssueReport } from "./types";
@@ -112,6 +113,10 @@ function App() {
           <Route
             path="/transparansi"
             element={<TransparencyPage issues={allReports} />}
+          />
+          <Route
+            path="/lapor"
+            element={<CreateReportPage onReportSubmitted={handleReportSubmitted} />}
           />
           <Route path="/tentang" element={<AboutPage />} />
           <Route
