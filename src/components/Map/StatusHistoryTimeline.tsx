@@ -1,11 +1,5 @@
 import type { StatusHistory } from '../../types';
-
-const statusConfig = {
-  new: { label: 'New', color: 'bg-yellow-500', textColor: 'text-yellow-400', dot: 'bg-yellow-400' },
-  open: { label: 'Open', color: 'bg-orange-500', textColor: 'text-orange-400', dot: 'bg-orange-400' },
-  closed: { label: 'Closed', color: 'bg-emerald-500', textColor: 'text-emerald-400', dot: 'bg-emerald-400' },
-  archived: { label: 'Archived', color: 'bg-slate-500', textColor: 'text-[#9BA39E]', dot: 'bg-slate-400' },
-};
+import { getStatusBadge } from '../../utils/statusUtils';
 
 function formatDateTime(isoString: string): string {
   const date = new Date(isoString);
@@ -15,20 +9,21 @@ function formatDateTime(isoString: string): string {
 }
 
 interface StatusHistoryTimelineProps {
-  history: StatusHistory[];
+  history?: StatusHistory[];
 }
 
-export default function StatusHistoryTimeline({ history }: StatusHistoryTimelineProps) {
+export default function StatusHistoryTimeline({ history = [] }: StatusHistoryTimelineProps) {
+  if (!history || history.length === 0) return null;
   const reversed = [...history].reverse();
 
   return (
     <div className="mt-4">
-      <h4 className="text-sm font-semibold text-[#9BA39E] uppercase tracking-wider mb-4">
+      <h4 className="text-sm font-semibold text-[#9BA39E] uppercase tracking-wider mb-4 font-mono">
         Riwayat Status
       </h4>
       <div className="relative">
         {reversed.map((item, index) => {
-          const config = statusConfig[item.status];
+          const config = getStatusBadge(item.status);
           const isLast = index === reversed.length - 1;
           return (
             <div key={index} className="flex gap-3 relative">
