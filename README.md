@@ -88,15 +88,15 @@ Platform pelaporan yang ada saat ini memiliki kelemahan utama:
 
 ## Tech Stack
 
-| Layer           | Teknologi                                         | Kegunaan dalam Codebase                                                                                          |
-| --------------- | ------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Layer           | Teknologi                                         | Kegunaan dalam Codebase                                                                                           |
+| --------------- | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
 | **Framework**   | React 19 + TypeScript 5.8                         | Fondasi utama UI — seluruh halaman dan komponen dibangun sebagai React functional components dengan strict typing |
 | **Build Tool**  | Vite 6                                            | Dev server dengan HMR instan dan bundler production, termasuk proxy `/api` ke backend saat development            |
 | **Styling**     | Tailwind CSS 3 + Custom CSS animations            | Utility-first styling untuk layout dan tema gelap, ditambah custom keyframes untuk efek scanner dan laser glow    |
 | **Maps**        | Leaflet + React-Leaflet + MapLibre GL             | Render peta interaktif full-screen di halaman `/peta` dengan tile layer dan kontrol zoom/pan                      |
 | **Clustering**  | Leaflet.markercluster + react-leaflet-cluster     | Mengelompokkan marker laporan yang berdekatan agar peta tetap rapi dan performa terjaga pada ribuan titik data    |
 | **Animations**  | Framer Motion                                     | Transisi halaman, reveal-on-scroll pada landing page, dan micro-interactions pada kartu dan modal                 |
-| **Routing**     | React Router DOM 7                                | Client-side routing untuk navigasi antar 6 halaman utama tanpa full page reload                                  |
+| **Routing**     | React Router DOM 7                                | Client-side routing untuk navigasi antar 6 halaman utama tanpa full page reload                                   |
 | **Icons**       | React Icons + Koboyo Icons                        | Ikon kategori kerusakan (jalan, jembatan, drainase, dll.) dan ikon UI umum di navbar, sidebar, dan modal          |
 | **Fonts**       | Plus Jakarta Sans + JetBrains Mono (Google Fonts) | Plus Jakarta Sans untuk body text dan heading; JetBrains Mono untuk elemen kode dan data statistik                |
 | **Backend API** | Go (repository terpisah)                          | REST API yang menyajikan data laporan, analisis foto AI, dan manajemen status — dikonsumsi via `fetch` di service |
@@ -257,15 +257,6 @@ VITE_API_BASE_URL=https://api.portofy.net/api
 | `/transparansi` | Transparansi    | Dashboard tabel data seluruh laporan dengan filter dan statistik |
 | `/tentang`      | Tentang         | Informasi platform, visi misi, dan tim pengembang                |
 | `/laporan/:id`  | Detail Laporan  | Halaman detail laporan individual dengan timeline status         |
-
----
-
-## Tim Pengembang
-
-**Fixora** dirancang dan dibangun oleh:
-
-- [Putra Rizky Nugraha](https://github.com/arttVinci)
-- [Muhammad Fadhil Sevano](https://github.com/MFSevanoo)
 
 ---
 
