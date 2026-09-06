@@ -27,6 +27,12 @@ export interface AnalyzePhotoResult {
   categorySlug: string;
   severity: SeverityLevel;
   backendSeverity: BackendSeverity;
+  location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  reason?: string | null;
+  isRelevant: boolean;
 }
 
 let categoryCache: ApiCategoryResponse[] | null = null;
@@ -60,6 +66,12 @@ export async function analyzePhoto(file: File): Promise<AnalyzePhotoResult> {
     categorySlug: result.category,
     severity: backendSeverityToLevel(result.severity),
     backendSeverity: result.severity as BackendSeverity,
+    location: result.location ?? null,
+    latitude: result.latitude ?? null,
+    longitude: result.longitude ?? null,
+    address: result.address ?? null,
+    reason: result.reason ?? null,
+    isRelevant: result.is_relevant,
   };
 }
 
