@@ -20,6 +20,8 @@ import {
   WhatsAppIcon,
   TwitterXIcon,
   LinkIcon,
+  CheckIcon,
+  CloseIcon,
 } from '../components/Icons';
 
 /* ── Leaflet pin icon ── */
@@ -31,6 +33,21 @@ const miniPinIcon = L.divIcon({
   iconSize: [30, 30],
   iconAnchor: [15, 15],
 });
+
+/* ── Haversine distance (meters) ── */
+function distanceMeters(
+  lat1: number, lng1: number,
+  lat2: number, lng2: number,
+): number {
+  const R = 6371000;
+  const toRad = (d: number) => (d * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLng = toRad(lng2 - lng1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 /* ── Category metadata ── */
 const categoryMeta: Record<IssueCategory, { label: string; icon: React.ReactNode }> = {
@@ -48,6 +65,8 @@ const sourceMeta: Record<SourceType, { label: string; icon: React.ReactNode }> =
   government_data: { label: 'Data Pemerintah',         icon: <BuildingIcon className="w-3.5 h-3.5" /> },
 };
 
+import { getStatusBadge } from '../utils/statusUtils';
+
 /* ── Severity helpers ── */
 const severityConfig: Record<string, { label: string; badge: string; dot: string }> = {
   ringan: { label: 'Ringan',  badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', dot: 'bg-emerald-400' },
@@ -56,14 +75,6 @@ const severityConfig: Record<string, { label: string; badge: string; dot: string
   tinggi: { label: 'Tinggi',  badge: 'bg-orange-500/15 text-orange-300 border-orange-500/30',  dot: 'bg-orange-400' },
   parah:  { label: 'Parah',   badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30',        dot: 'bg-rose-400' },
   kritis: { label: 'Kritis',  badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30',        dot: 'bg-rose-400' },
-};
-
-/* ── Status helpers ── */
-const statusConfig: Record<string, { label: string; badge: string; dot: string }> = {
-  new:      { label: 'Menunggu Verifikasi', badge: 'bg-amber-500/15 text-amber-300 border-amber-500/30', dot: 'bg-amber-400 animate-pulse' },
-  open:     { label: 'Sedang Berlangsung',  badge: 'bg-rose-500/15 text-rose-300 border-rose-500/30',   dot: 'bg-rose-400 animate-pulse' },
-  closed:   { label: 'Telah Ditangani',     badge: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', dot: 'bg-emerald-400' },
-  archived: { label: 'Diarsipkan',          badge: 'bg-slate-500/15 text-slate-300 border-slate-500/30', dot: 'bg-slate-400' },
 };
 
 interface ReportDetailPageProps {
@@ -156,7 +167,7 @@ export default function ReportDetailPage({ issues }: ReportDetailPageProps) {
   const cat = categoryMeta[issue.category] || categoryMeta.jalan;
   const src = sourceMeta[issue.source] || sourceMeta.citizen;
   const sev = severityConfig[issue.severity?.toLowerCase() || 'sedang'] || severityConfig.sedang;
-  const stat = statusConfig[issue.status] || statusConfig.new;
+  const stat = getStatusBadge(issue.status);
 
   const hasPhoto = !!issue.imageUrl;
   const allPhotos = [issue.imageUrl, ...(issue.additionalPhotos || [])].filter(
@@ -172,7 +183,7 @@ export default function ReportDetailPage({ issues }: ReportDetailPageProps) {
 
   const handleShareWhatsApp = () => {
     const text = encodeURIComponent(
-      `Informasi Fasilitas Publik - Fixora\n\n${issue.title}\n📍 ${issue.address || issue.location || '-'}\n\nLihat rincian pemantauan: ${window.location.href}`
+      `Informasi Fasilitas Publik - Fixora\n\n${issue.title}\nLokasi: ${issue.address || issue.location || '-'}\n\nLihat rincian pemantauan: ${window.location.href}`
     );
     window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
   };
@@ -188,7 +199,7 @@ export default function ReportDetailPage({ issues }: ReportDetailPageProps) {
       {/* Floating Toast Notification */}
       {showToast && (
         <div className="fixed bottom-6 right-6 z-[3000] px-4 py-3 rounded-xl bg-[#161918] border border-[#2E7D32] text-[#81C784] text-xs font-semibold flex items-center gap-2 shadow-2xl animate-slide-up">
-          <span>✓</span>
+          <CheckIcon className="w-4 h-4" />
           <span>{showToast}</span>
         </div>
       )}
@@ -203,7 +214,7 @@ export default function ReportDetailPage({ issues }: ReportDetailPageProps) {
             onClick={() => setLightboxOpen(false)}
             className="absolute top-6 right-6 w-10 h-10 rounded-full bg-[#161918] border border-[#2A2E2C] text-white flex items-center justify-center text-base cursor-pointer hover:bg-[#1F2422] transition-colors z-50"
           >
-            ✕
+            <CloseIcon className="w-4 h-4" />
           </button>
           <img
             src={currentPhoto}
@@ -432,6 +443,70 @@ export default function ReportDetailPage({ issues }: ReportDetailPageProps) {
 
             {/* Verification multi-agent trace */}
             <VerificationPanel reportId={issue.id} />
+
+            {/* ── Related Reports (nearby / merged) ── */}
+            {issue.relatedReports && issue.relatedReports.length > 0 && (
+              <div className="p-6 sm:p-7 rounded-2xl bg-[#161918] border border-[#2A2E2C] space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-xs font-bold uppercase tracking-wider text-[#9BA39E] font-mono">
+                    Laporan Serupa di Sekitar
+                  </h2>
+                  <span className="text-[11px] font-mono text-[#81C784]">
+                    {issue.relatedReports.length} laporan
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {issue.relatedReports.map((rel) => {
+                    const relCat = categoryMeta[rel.category] || categoryMeta.jalan;
+                    const dist = Math.round(
+                      distanceMeters(
+                        issue.latitude, issue.longitude,
+                        rel.latitude, rel.longitude,
+                      ),
+                    );
+                    const relStat = getStatusBadge(rel.status);
+                    return (
+                      <Link
+                        key={rel.id}
+                        to={`/laporan/${rel.id}`}
+                        className="flex items-center gap-3 p-3 rounded-xl bg-[#0D0F0E]/60 border border-[#2A2E2C] hover:border-[#2E7D32]/50 hover:bg-[#141816] transition-colors"
+                      >
+                        {rel.imageUrl ? (
+                          <img
+                            src={rel.imageUrl}
+                            alt={rel.title}
+                            className="w-12 h-12 rounded-lg object-cover border border-[#2A2E2C] flex-shrink-0"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-[#161918] border border-[#2A2E2C] flex items-center justify-center text-[#81C784] flex-shrink-0">
+                            {relCat.icon}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 text-[10px] font-mono text-[#9BA39E]">
+                            <span className="truncate">#{rel.id}</span>
+                            <span className="flex-shrink-0 inline-flex items-center gap-1 text-[#81C784]">
+                              <MapPinIcon className="w-3 h-3" />
+                              {dist} m
+                            </span>
+                          </div>
+                          <h3 className="text-sm font-semibold text-[#F2F2F0] leading-snug truncate mt-0.5">
+                            {rel.title}
+                          </h3>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full border font-semibold ${relStat.badge}`}>
+                              {relStat.label}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
           </div>
 
