@@ -9,6 +9,7 @@ import {
   DrainageIcon,
   AiRobotIcon,
   UserIcon,
+  CloseIcon,
 } from '../Icons';
 
 interface MapFilterBarProps {
@@ -80,9 +81,9 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
         <h2 className="text-lg font-bold text-[#F2F2F0]">Filter Laporan</h2>
         <button
           onClick={() => setIsExpanded(false)}
-          className="text-[#9BA39E] hover:text-[#F2F2F0] hover:bg-[#1F2422] rounded-full p-1.5 transition-all"
+          className="text-[#9BA39E] hover:text-[#F2F2F0] hover:bg-[#1F2422] rounded-full p-1.5 transition-all cursor-pointer"
         >
-          ✕
+          <CloseIcon className="w-4 h-4" />
         </button>
       </div>
 
