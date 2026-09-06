@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import HeroSection from "../components/landing/HeroSection";
 import ArchitectureSection from "../components/landing/ArchitectureSection";
+import ReportingTutorialSection from "../components/landing/ReportingTutorialSection";
 import Footer from "../components/Footer";
 import type { IssueReport } from "../types";
 import {
@@ -53,6 +54,8 @@ const FAQS: FaqItem[] = [
   },
 ];
 
+import { isUnresolvedStatus } from "../utils/reportStats";
+
 export default function HomePage({
   issues,
   onLaporMasalah,
@@ -60,10 +63,11 @@ export default function HomePage({
 }: HomePageProps) {
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
 
-  const totalActive = issues.filter(
-    (i) => i.status === "open" || i.status === "new",
-  ).length;
-  const totalResolved = issues.filter((i) => i.status === "closed").length;
+  const totalActive = issues.filter((i) => isUnresolvedStatus(i.status)).length;
+  const totalResolved = issues.filter((i) => {
+    const s = i.status?.toLowerCase().trim();
+    return s === "resolved" || s === "closed" || s === "selesai";
+  }).length;
 
   return (
     <div className="w-full bg-[#0D0F0E] text-[#F2F2F0] selection:bg-[#2E7D32] selection:text-[#F2F2F0]">
@@ -369,103 +373,8 @@ export default function HomePage({
         </div>
       </section>
 
-      {/* 5. TABEL PERBANDINGAN / DIFERENSIASI */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#121514] border-t border-[#2A2E2C]">
-        <div className="max-w-5xl mx-auto space-y-10">
-          <div className="text-center max-w-2xl mx-auto space-y-3">
-            <span className="text-xs font-mono text-[#81C784] font-semibold uppercase tracking-wider">
-              KEUNGGULAN KOMPETITIF
-            </span>
-            <h2 className="text-2xl sm:text-4xl font-extrabold font-heading text-[#F2F2F0]">
-              Mengapa Fixora Berbeda?
-            </h2>
-            <p className="text-sm text-[#9BA39E]">
-              Perbandingan langsung fitur dan filosofi Fixora dengan platform
-              konvensional.
-            </p>
-          </div>
-
-          <div className="overflow-hidden rounded-3xl border border-[#2A2E2C] bg-[#161918] shadow-2xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs sm:text-sm">
-                <thead className="bg-[#0D0F0E] text-[#9BA39E] font-mono text-[11px] uppercase border-b border-[#2A2E2C]">
-                  <tr>
-                    <th className="py-4 px-5">Aspek / Fitur</th>
-                    <th className="py-4 px-5 text-[#81C784] font-bold">
-                      Fixora (AI + OSS)
-                    </th>
-                    <th className="py-4 px-5 text-[#9BA39E]">
-                      Platform Konvensional
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#2A2E2C] text-[#F2F2F0]">
-                  <tr className="hover:bg-[#1A1F1D] transition-colors">
-                    <td className="py-4 px-5 font-semibold">
-                      Pelacakan Durasi Mangkrak
-                    </td>
-                    <td className="py-4 px-5 text-[#81C784] font-medium flex items-center gap-1.5">
-                      <CheckIcon className="w-4 h-4 text-[#81C784]" />
-                      <span>Timer publik otomatis (Hari / Bulan)</span>
-                    </td>
-                    <td className="py-4 px-5 text-[#9BA39E]">
-                      Lapor sekali, tidak ada timer publik
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-[#1A1F1D] transition-colors">
-                    <td className="py-4 px-5 font-semibold">
-                      Pengumpulan Data
-                    </td>
-                    <td className="py-4 px-5 text-[#81C784] font-medium flex items-center gap-1.5">
-                      <CheckIcon className="w-4 h-4 text-[#81C784]" />
-                      <span>Proaktif (AI News Crawler + Warga)</span>
-                    </td>
-                    <td className="py-4 px-5 text-[#9BA39E]">
-                      Pasif (Hanya menunggu laporan)
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-[#1A1F1D] transition-colors">
-                    <td className="py-4 px-5 font-semibold">
-                      Korelasi Anggaran APBD
-                    </td>
-                    <td className="py-4 px-5 text-[#81C784] font-medium flex items-center gap-1.5">
-                      <CheckIcon className="w-4 h-4 text-[#81C784]" />
-                      <span>Cross-reference SatuData APBD</span>
-                    </td>
-                    <td className="py-4 px-5 text-[#9BA39E]">
-                      Tidak terhubung data anggaran
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-[#1A1F1D] transition-colors">
-                    <td className="py-4 px-5 font-semibold">
-                      Klasifikasi Kerusakan
-                    </td>
-                    <td className="py-4 px-5 text-[#81C784] font-medium flex items-center gap-1.5">
-                      <CheckIcon className="w-4 h-4 text-[#81C784]" />
-                      <span>Multimodal Vision LLM Otomatis</span>
-                    </td>
-                    <td className="py-4 px-5 text-[#9BA39E]">
-                      Pilih kategori manual
-                    </td>
-                  </tr>
-                  <tr className="hover:bg-[#1A1F1D] transition-colors">
-                    <td className="py-4 px-5 font-semibold">
-                      Keterbukaan Data
-                    </td>
-                    <td className="py-4 px-5 text-[#81C784] font-medium flex items-center gap-1.5">
-                      <CheckIcon className="w-4 h-4 text-[#81C784]" />
-                      <span>Open Source (MIT) & Open API</span>
-                    </td>
-                    <td className="py-4 px-5 text-[#9BA39E]">
-                      Tertutup (Proprietary)
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* 5. PANDUAN & CARA MELAPOR DENGAN TIMESTAMP CAMERA & AI */}
+      <ReportingTutorialSection onLaporMasalah={onLaporMasalah} />
 
       {/* ── OPEN SOURCE & PROJECT RESOURCES ── */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 bg-[#0D0F0E] border-t border-[#2A2E2C]">
@@ -615,16 +524,18 @@ export default function HomePage({
 
           <div className="flex flex-wrap items-center justify-center gap-4 pt-2">
             <Link
-              to="/peta"
-              className="btn-primary py-3 px-6 text-sm font-bold shadow-lg cursor-pointer inline-flex items-center"
+              to="/lapor"
+              className="btn-primary py-3 px-6 text-sm font-bold shadow-lg cursor-pointer inline-flex items-center gap-2"
             >
-              Buka Peta Interaktif Fullscreen →
+              <CameraIcon className="w-4 h-4" />
+              <span>+ Buat Laporan Sekarang</span>
             </Link>
             <Link
-              to="/transparansi"
-              className="py-3 px-6 rounded-2xl bg-[#161918] hover:bg-[#1F2422] border border-[#2A2E2C] text-sm font-bold text-[#F2F2F0] transition-colors cursor-pointer inline-flex items-center"
+              to="/peta"
+              className="py-3 px-6 rounded-2xl bg-[#161918] hover:bg-[#1F2422] border border-[#2A2E2C] text-sm font-bold text-[#F2F2F0] transition-colors cursor-pointer inline-flex items-center gap-2"
             >
-              Lihat Data Anggaran APBD
+              <MapPinIcon className="w-4 h-4 text-[#81C784]" />
+              <span>Jelajahi Peta Radar</span>
             </Link>
           </div>
         </div>
