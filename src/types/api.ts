@@ -33,19 +33,9 @@ export interface ApiReportDetailResponse {
   additional_photos?: string[] | null;
   total_confirmations: number;
   merged_into_id?: string | null;
+  related_reports?: ApiReportMapResponse[] | null;
   first_reported_at?: string | null;
   last_confirmed_at?: string | null;
-}
-
-export interface MapReportQuery {
-  min_lat: number;
-  max_lat: number;
-  min_lng: number;
-  max_lng: number;
-  category_id?: string;
-  status?: string;
-  severity?: 'ringan' | 'sedang' | 'parah';
-  source?: string;
 }
 
 export interface MapBounds {
@@ -68,7 +58,15 @@ export interface ApiAnalyzePhotoResponse {
   description: string;
   category: string;
   severity: string;
+  location?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  address?: string | null;
+  reason?: string | null;
+  is_relevant: boolean;
 }
+
+export type IssueAnalysisResultResponse = ApiAnalyzePhotoResponse;
 
 export interface CreateReportPayload {
   category_id: string;
@@ -116,3 +114,4 @@ export interface ApiVerificationSessionResponse {
   updated_at?: string | null;
   logs?: ApiVerificationLogResponse[] | null;
 }
+
