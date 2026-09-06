@@ -1,42 +1,52 @@
-import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
-import Navbar from './components/Navbar';
-import HeroSection from './components/landing/HeroSection';
-import MapSection from './components/landing/MapSection';
-import HowItWorksSection from './components/landing/HowItWorksSection';
-import AnalyticsSection from './components/landing/AnalyticsSection';
-import CTASection from './components/landing/CTASection';
-import Footer from './components/Footer';
+import { useState, useEffect, useCallback } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import HomePage from "./pages/HomePage";
+import MapPage from "./pages/MapPage";
+import TransparencyPage from "./pages/TransparencyPage";
+import AboutPage from "./pages/AboutPage";
+import ReportDetailPage from "./pages/ReportDetailPage";
+import CreateReportPage from "./pages/CreateReportPage";
 
-import { mockIssueReports } from './services/mockData';
-import { fetchMapReports } from './services/reportApiService';
-import type { IssueReport } from './types';
-import type { MapBounds } from './types/api';
+import { fetchMapReports } from "./services/reportApiService";
+import type { IssueReport } from "./types";
+import type { MapBounds } from "./types/api";
 
-const DEFAULT_BOUNDS: MapBounds = {
-  minLat: -6.4,
-  maxLat: -6.0,
-  minLng: 106.6,
-  maxLng: 107.1,
+const WEST_JAVA_BOUNDS: MapBounds = {
+  minLat: -8.5,
+  maxLat: -5.5,
+  minLng: 105.5,
+  maxLng: 109.5,
 };
 
 function App() {
-  const [issues, setIssues] = useState<IssueReport[]>(mockIssueReports);
+  const [allReports, setAllReports] = useState<IssueReport[]>([]);
+  const [mapReports, setMapReports] = useState<IssueReport[]>([]);
+  const location = useLocation();
 
+  const isMapPage = location.pathname === "/peta";
+
+  // Load all reports across West Java for global metrics, homepage stats, and transparency
   useEffect(() => {
     let cancelled = false;
 
-    async function loadInitialReports() {
+    async function loadAllReports() {
       try {
-        const apiReports = await fetchMapReports(DEFAULT_BOUNDS);
-        if (!cancelled && apiReports.length > 0) {
-          setIssues(apiReports);
+        const apiReports = await fetchMapReports(WEST_JAVA_BOUNDS);
+        if (!cancelled) {
+          setAllReports(apiReports);
+          setMapReports(apiReports);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          console.warn("[Fixora] Gagal memuat data laporan dari backend.", err);
         }
       } catch {
         // Fallback to mock issues if API is unreachable
       }
     }
 
-    loadInitialReports();
+    loadAllReports();
     return () => {
       cancelled = true;
     };
@@ -45,62 +55,92 @@ function App() {
   const handleBoundsChange = useCallback(async (bounds: MapBounds) => {
     try {
       const apiReports = await fetchMapReports(bounds);
-      if (apiReports.length > 0) {
-        setIssues(apiReports);
-      }
-    } catch {
+      setMapReports(apiReports);
+    } catch (err) {
+      console.warn("[Fixora] Gagal memuat data peta untuk area ini.", err);
     }
   }, []);
 
-  const { totalReports, criticalReports, resolutionRate } = useMemo(() => {
-    const t = issues.length;
-    const c = issues.filter(i => i.status === 'open').length;
-    const r = issues.filter(i => i.status === 'closed' || i.status === 'archived').length;
-    const rate = t > 0 ? Math.round((r / t) * 100) : 0;
-    return { totalReports: t, criticalReports: c, resolutionRate: rate };
-  }, [issues]);
-
-  const mapSectionRef = useRef<HTMLDivElement>(null);
-
-  const handleScrollToMap = () => {
-    mapSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const handleLaporMasalah = () => {
-    mapSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
   const handleReportSubmitted = (newReport: IssueReport) => {
-    setIssues(prev => [...prev, newReport]);
+    setAllReports((prev) => [newReport, ...prev]);
+    setMapReports((prev) => [newReport, ...prev]);
+  };
+
+  const handleConfirmIssue = (issueId: string) => {
+    const updateFn = (prev: IssueReport[]) =>
+      prev.map((i) =>
+        i.id === issueId
+          ? { ...i, confirmationCount: (i.confirmationCount || 0) + 1 }
+          : i,
+      );
+    setAllReports(updateFn);
+    setMapReports(updateFn);
   };
 
   return (
-    <div className="min-h-screen bg-dark-surface">
+    <div
+      className={`bg-[#0D0F0E] text-[#F2F2F0] font-sans antialiased selection:bg-[#2E7D32] selection:text-[#F2F2F0] ${
+        isMapPage ? "h-screen overflow-hidden flex flex-col" : "min-h-screen"
+      }`}
+    >
+      {/* Universal Header Navbar */}
       <Navbar />
-      <main>
-        <HeroSection
-          issues={issues}
-          onLaporMasalah={handleLaporMasalah}
-          onReportSubmitted={handleReportSubmitted}
-          onScrollToMap={handleScrollToMap}
-        />
-        <div ref={mapSectionRef}>
-          <MapSection
-            issues={issues}
-            onAddIssue={handleReportSubmitted}
-            onBoundsChange={handleBoundsChange}
+
+      {/* Main Routed Page Content */}
+      <main
+        className={`w-full ${
+          isMapPage ? "flex-1 overflow-hidden h-[calc(100vh-64px)]" : ""
+        }`}
+      >
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <HomePage
+                issues={allReports}
+                onReportSubmitted={handleReportSubmitted}
+              />
+            }
           />
-        </div>
-        <HowItWorksSection />
-        <AnalyticsSection
-          issues={issues}
-          totalReports={totalReports}
-          criticalReports={criticalReports}
-          resolutionRate={resolutionRate}
-        />
-        <CTASection />
+          <Route
+            path="/peta"
+            element={
+              <MapPage
+                issues={mapReports.length > 0 ? mapReports : allReports}
+                onAddIssue={handleReportSubmitted}
+                onBoundsChange={handleBoundsChange}
+              />
+            }
+          />
+          <Route
+            path="/transparansi"
+            element={<TransparencyPage issues={allReports} />}
+          />
+          <Route
+            path="/lapor"
+            element={<CreateReportPage onReportSubmitted={handleReportSubmitted} />}
+          />
+          <Route path="/tentang" element={<AboutPage />} />
+          <Route
+            path="/laporan/:id"
+            element={
+              <ReportDetailPage
+                issues={allReports}
+                onConfirmIssue={handleConfirmIssue}
+              />
+            }
+          />
+          <Route
+            path="*"
+            element={
+              <HomePage
+                issues={allReports}
+                onReportSubmitted={handleReportSubmitted}
+              />
+            }
+          />
+        </Routes>
       </main>
-      <Footer />
     </div>
   );
 }

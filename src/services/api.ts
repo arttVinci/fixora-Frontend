@@ -7,13 +7,17 @@ export async function fetchApi<T>(
   options?: RequestInit
 ): Promise<T> {
   const url = `${API_BASE_URL}${path}`;
+  const isFormData =
+    typeof FormData !== 'undefined' && options?.body instanceof FormData;
 
   const response = await fetch(url, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...options?.headers,
-    },
     ...options,
+    headers: isFormData
+      ? {}
+      : {
+          'Content-Type': 'application/json',
+          ...(options?.headers as Record<string, string> | undefined),
+        },
   });
 
   if (!response.ok) {

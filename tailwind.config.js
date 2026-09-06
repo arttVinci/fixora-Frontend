@@ -8,51 +8,66 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Industrial Green Theme Palette
+        industrial: {
+          bg: '#0D0F0E',
+          surface: '#161918',
+          'surface-card': '#161918',
+          'surface-elevated': '#1F2422',
+          border: '#2A2E2C',
+          text: '#F2F2F0',
+          'text-muted': '#9BA39E',
+        },
 
         primary: {
-          50: '#f0fdfa',
-          100: '#ccfbf1',
-          200: '#99f6e4',
-          300: '#5eead4',
-          400: '#2dd4bf',
-          500: '#14b8a6',
-          600: '#0d9488',
-          700: '#0f766e',
-          800: '#115e59',
-          900: '#134e4a',
-          950: '#042f2e',
+          50: '#e8f5e9',
+          100: '#c8e6c9',
+          200: '#a5d6a7',
+          300: '#81c784',
+          400: '#4caf50',
+          500: '#2e7d32', // Primary Engineering Green
+          600: '#1b5e20', // Forest Green
+          700: '#144717',
+          800: '#0e3010',
+          900: '#081a09',
+          950: '#040d05',
         },
 
         secondary: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+          50: '#f1f8e9',
+          100: '#dcedc8',
+          200: '#c5e1a5',
+          300: '#aed581',
+          400: '#9ccc65',
+          500: '#7cb342',
+          600: '#689f38',
+          700: '#558b2f',
+          800: '#33691e',
+          900: '#1b5e20',
+          950: '#0e3010',
         },
 
         dark: {
-          surface: '#0b1326',
-          'surface-low': '#131b2e',
-          'surface-high': '#2d3449',
+          surface: '#0D0F0E',
+          'surface-low': '#161918',
+          'surface-high': '#1F2422',
+          border: '#2A2E2C',
         },
 
         fixora: {
-          dark: '#0E2F56',
-          primary: '#14b8a6',
-          accent: '#F37023',
-          light: '#F8FAFC',
+          dark: '#0D0F0E',
+          primary: '#2E7D32',
+          accent: '#4CAF50',
+          forest: '#1B5E20',
+          light: '#F2F2F0',
+          muted: '#9BA39E',
+          border: '#2A2E2C',
         },
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
-        heading: ['"Plus Jakarta Sans"', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+        sans: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        heading: ['"Plus Jakarta Sans"', 'Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'monospace'],
       },
       animation: {
         'hero-reveal': 'hero-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both',
@@ -60,7 +75,6 @@ export default {
         'spin-slow': 'spin-slow 6s linear infinite',
         'float-in': 'float-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
         'chat-bounce': 'chat-bounce 1.2s ease-in-out infinite',
-        'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
         'slide-up': 'slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) both',
         'fade-in': 'fade-in 0.6s ease-out both',
       },
@@ -93,10 +107,6 @@ export default {
           '0%, 60%, 100%': { opacity: '0.3', transform: 'translateY(0)' },
           '30%': { opacity: '1', transform: 'translateY(-3px)' },
         },
-        'glow-pulse': {
-          '0%, 100%': { boxShadow: '0 0 20px rgba(20, 184, 166, 0.3)' },
-          '50%': { boxShadow: '0 0 40px rgba(20, 184, 166, 0.6)' },
-        },
         'slide-up': {
           '0%': { opacity: '0', transform: 'translateY(20px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
@@ -107,12 +117,9 @@ export default {
         },
       },
       boxShadow: {
-        floating:
-          '0 40px 80px rgba(0,0,0,.45, 0 0 60px rgba(20, 184, 166,.18)',
-        premium: '0 50px 120px rgba(0,0,0,.55), 0 0 80px rgba(20,184,166,.22)',
-        'glow': '0 0 40px rgba(20, 184, 166, 0.15), 0 0 80px rgba(20, 184, 166, 0.1)',
-        'glow-lg': '0 0 60px rgba(20, 184, 166, 0.25), 0 0 100px rgba(20, 184, 166, 0.15)',
-        'chat': '0 0 40px rgba(0, 76, 237, 0.12), 0 0 80px rgba(0, 76, 237, 0.06), 0 25px 50px rgba(0, 0, 0, 0.4)',
+        floating: '0 30px 60px rgba(0,0,0,.5)',
+        premium: '0 40px 80px rgba(0,0,0,.6)',
+        chat: '0 20px 40px rgba(0, 0, 0, 0.4)',
       },
       backdropBlur: {
         xs: '2px',

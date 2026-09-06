@@ -45,10 +45,10 @@ export default function HowItWorksSection() {
     <section id="features" className="max-w-6xl mx-auto px-4 py-16 sm:py-24">
       <Reveal>
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold font-heading text-white mb-4">
+          <h2 className="text-3xl md:text-4xl font-bold font-heading text-[#F2F2F0] mb-4">
             Bagaimana Fixora Bekerja?
           </h2>
-          <p className="text-slate-400 max-w-2xl mx-auto text-base sm:text-lg">
+          <p className="text-[#9BA39E] max-w-2xl mx-auto text-base sm:text-lg">
             Proses transparan yang melibatkan warga, AI, dan pemerintah untuk penanganan infrastruktur yang lebih baik.
           </p>
         </div>
@@ -63,27 +63,27 @@ export default function HowItWorksSection() {
                 onClick={() => setActiveStep(step.id)}
                 className={`text-left p-5 rounded-2xl border transition-all duration-300 w-full relative overflow-hidden group ${
                   activeStep === step.id
-                    ? 'border-emerald-500/60 bg-emerald-950/20 shadow-lg shadow-emerald-500/10'
-                    : 'border-white/10 bg-slate-900/40 hover:border-slate-700 hover:bg-slate-900/80'
+                    ? 'border-[#2E7D32]/70 bg-[#161918] shadow-lg shadow-[#2E7D32]/10'
+                    : 'border-[#2A2E2C] bg-[#161918]/60 hover:border-[#2E7D32]/40 hover:bg-[#161918]'
                 }`}
               >
                 {activeStep === step.id && (
-                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-gradient-to-b from-emerald-400 to-teal-500 rounded-l-2xl" />
+                  <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-[#2E7D32] rounded-l-2xl" />
                 )}
                 <div className="flex items-start gap-4">
                   <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl shrink-0 transition-transform duration-300 group-hover:scale-110 ${
                     activeStep === step.id
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
-                      : 'bg-slate-800 text-slate-300 border border-slate-700/60'
+                      ? 'bg-[#1B5E20]/35 text-[#81C784] border border-[#2E7D32]/50'
+                      : 'bg-[#0D0F0E] text-[#9BA39E] border border-[#2A2E2C]'
                   }`}>
                     {step.icon}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-emerald-400 font-bold text-xs mb-1">
+                    <div className="text-[#81C784] font-bold text-xs mb-1">
                       Langkah {step.id}
                     </div>
-                    <h3 className="text-white font-bold text-base sm:text-lg leading-snug">{step.title}</h3>
-                    <p className="text-slate-400 text-xs sm:text-sm mt-1 leading-relaxed">{step.description}</p>
+                    <h3 className="text-[#F2F2F0] font-bold text-base sm:text-lg leading-snug">{step.title}</h3>
+                    <p className="text-[#9BA39E] text-xs sm:text-sm mt-1 leading-relaxed">{step.description}</p>
                   </div>
                 </div>
               </button>
@@ -100,26 +100,26 @@ export default function HowItWorksSection() {
               {/* STEP 1: WARGA UNGGAH FOTO */}
               {/* ============================================================ */}
               {activeStep === 1 && (
-                <div className="bg-[#0b101d] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="bg-[#161918] border border-[#2A2E2C] rounded-2xl p-6 shadow-2xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#2A2E2C] pb-3">
                     <div className="flex items-center gap-2">
-                      <CameraIcon className="w-5 h-5 text-red-500" />
-                      <span className="text-white font-bold text-base">Unggah Foto Laporan</span>
+                      <CameraIcon className="w-5 h-5 text-[#81C784]" />
+                      <span className="text-[#F2F2F0] font-bold text-base">Unggah Foto Laporan</span>
                     </div>
-                    <span className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 px-2.5 py-1 rounded-full">
+                    <span className="text-xs text-[#81C784] bg-[#1B5E20]/30 border border-[#2E7D32]/40 px-2.5 py-1 rounded-full">
                       Ponsel / Kamera
                     </span>
                   </div>
 
-                  <div className="border border-dashed border-slate-700 bg-slate-900/60 rounded-xl p-6 text-center space-y-3">
-                    <div className="w-16 h-16 bg-red-500/10 text-red-400 rounded-full flex items-center justify-center mx-auto">
-                      <CameraIcon className="w-8 h-8 text-red-500" />
+                  <div className="border border-dashed border-[#2A2E2C] bg-[#0D0F0E] rounded-xl p-6 text-center space-y-3">
+                    <div className="w-16 h-16 bg-[#1B5E20]/25 text-[#81C784] rounded-full flex items-center justify-center mx-auto border border-[#2E7D32]/30">
+                      <CameraIcon className="w-8 h-8 text-[#81C784]" />
                     </div>
                     <div>
-                      <p className="text-white font-semibold text-sm">Ambil Foto Infrastruktur Mangkrak</p>
-                      <p className="text-slate-400 text-xs mt-1">Dukungan format JPG, PNG, WEBP hingga 10MB</p>
+                      <p className="text-[#F2F2F0] font-semibold text-sm">Ambil Foto Infrastruktur Mangkrak</p>
+                      <p className="text-[#9BA39E] text-xs mt-1">Dukungan format JPG, PNG, WEBP hingga 10MB</p>
                     </div>
-                    <button className="bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2 rounded-full shadow transition-all inline-flex items-center gap-1.5">
+                    <button className="bg-[#2E7D32] hover:bg-[#1B5E20] text-[#F2F2F0] text-xs font-bold px-4 py-2 rounded-full shadow transition-all inline-flex items-center gap-1.5">
                       <CameraIcon className="w-3.5 h-3.5" /> Ambil / Pilih Foto
                     </button>
                   </div>
@@ -130,72 +130,72 @@ export default function HowItWorksSection() {
               {/* STEP 2: AI DETEKSI & KATEGORI (EXACT MATCH FOR SCREENSHOT 1) */}
               {/* ============================================================ */}
               {activeStep === 2 && (
-                <div className="bg-[#0b101d] border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4 text-left max-h-[560px] overflow-y-auto">
+                <div className="bg-[#161918] border border-[#2A2E2C] rounded-2xl p-5 shadow-2xl space-y-4 text-left max-h-[560px] overflow-y-auto">
                   {/* Modal Header */}
-                  <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
-                    <h3 className="text-white font-bold text-lg">Laporan foto</h3>
-                    <button className="text-slate-400 hover:text-white p-1">
+                  <div className="flex items-center justify-between border-b border-[#2A2E2C] pb-3">
+                    <h3 className="text-[#F2F2F0] font-bold text-lg">Laporan foto</h3>
+                    <button className="text-[#9BA39E] hover:text-[#F2F2F0] p-1">
                       <CloseIcon className="w-4 h-4" />
                     </button>
                   </div>
 
                   {/* AI Badge */}
-                  <div className="flex items-center gap-2 text-xs font-semibold text-red-500">
-                    <span className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                    Didukung oleh AI
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[#81C784]">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#2E7D32]" />
+                    Didukung oleh Fixora AI
                   </div>
 
                   {/* Photo Upload Area */}
                   <div>
-                    <label className="text-white font-semibold text-xs block mb-1.5">
-                      Foto <span className="text-red-500">*</span>
+                    <label className="text-[#F2F2F0] font-semibold text-xs block mb-1.5">
+                      Foto <span className="text-[#81C784]">*</span>
                     </label>
 
-                    <div className="border border-slate-800 bg-[#0d1424] rounded-xl p-5 text-center space-y-3 relative">
+                    <div className="border border-[#2A2E2C] bg-[#0D0F0E] rounded-xl p-5 text-center space-y-3 relative">
                       {/* Photo Thumbnail */}
-                      <div className="relative w-20 h-20 mx-auto rounded-xl overflow-hidden border border-slate-700 shadow-md">
+                      <div className="relative w-20 h-20 mx-auto rounded-xl overflow-hidden border border-[#2A2E2C] shadow-md">
                         <img
                           src="/images/jalan-berlubang.jpg"
                           alt="Thumbnail"
                           className="w-full h-full object-cover"
                         />
-                        <button className="absolute top-1 right-1 w-4 h-4 bg-slate-900/80 text-white rounded-full flex items-center justify-center text-[10px]">
-                          ✕
+                        <button className="absolute top-1 right-1 w-4 h-4 bg-[#161918]/80 text-white rounded-full flex items-center justify-center text-[10px] cursor-pointer">
+                          <CloseIcon className="w-2.5 h-2.5" />
                         </button>
                       </div>
 
-                      {/* Red Button */}
-                      <button className="bg-red-950/40 border border-red-500/50 hover:bg-red-900/50 text-red-400 text-xs font-semibold px-5 py-2.5 rounded-xl transition-all inline-flex items-center gap-2">
-                        <CameraIcon className="w-4 h-4 text-red-500" />
+                      {/* Green Action Button */}
+                      <button className="bg-[#1B5E20]/30 border border-[#2E7D32]/50 hover:bg-[#2E7D32]/40 text-[#81C784] text-xs font-semibold px-5 py-2.5 rounded-xl transition-all inline-flex items-center gap-2">
+                        <CameraIcon className="w-4 h-4 text-[#81C784]" />
                         <span>Klik untuk mengunggah</span>
                       </button>
 
                       {/* Helper texts */}
-                      <p className="text-slate-400 text-xs">
-                        atau melalui seret & lepas • <span className="text-slate-300">1/3</span>
+                      <p className="text-[#9BA39E] text-xs">
+                        atau melalui seret & lepas • <span className="text-[#F2F2F0]">1/3</span>
                       </p>
-                      <p className="text-slate-500 text-[11px]">
+                      <p className="text-[#9BA39E]/80 text-[11px]">
                         Dilarang memotret orang/plat nomor kendaraan.
                       </p>
-                      <p className="text-slate-400 text-[11px] flex items-center justify-center gap-1">
-                        Analisis melalui Fixora AI (Indonesia) <span className="text-slate-500">ⓘ</span>
+                      <p className="text-[#9BA39E] text-[11px] flex items-center justify-center gap-1">
+                        Analisis melalui Fixora AI (Indonesia) <span className="text-[#9BA39E]/70">ⓘ</span>
                       </p>
                     </div>
                   </div>
 
                   {/* Category Field */}
                   <div>
-                    <label className="text-white font-semibold text-xs block mb-1.5">
-                      kategori <span className="text-red-500">*</span>
+                    <label className="text-[#F2F2F0] font-semibold text-xs block mb-1.5">
+                      kategori <span className="text-[#81C784]">*</span>
                     </label>
                     <div className="relative">
                       <select
                         disabled
-                        className="w-full bg-[#0d1424] border border-slate-800 text-white text-xs rounded-xl px-4 py-3 appearance-none focus:outline-none"
+                        className="w-full bg-[#0D0F0E] border border-[#2A2E2C] text-[#F2F2F0] text-xs rounded-xl px-4 py-3 appearance-none focus:outline-none"
                       >
                         <option>Jalan Rusak</option>
                       </select>
-                      <div className="absolute right-3 top-3.5 pointer-events-none text-slate-400 text-xs">
+                      <div className="absolute right-3 top-3.5 pointer-events-none text-[#9BA39E] text-xs">
                         ▼
                       </div>
                     </div>
@@ -203,13 +203,13 @@ export default function HowItWorksSection() {
 
                   {/* Keterangan Field */}
                   <div>
-                    <label className="text-white font-semibold text-xs block mb-1">
-                      Keterangan <span className="text-red-500">*</span>
+                    <label className="text-[#F2F2F0] font-semibold text-xs block mb-1">
+                      Keterangan <span className="text-[#81C784]">*</span>
                     </label>
-                    <p className="text-slate-400 text-[11px] mb-2">
+                    <p className="text-[#9BA39E] text-[11px] mb-2">
                       Ini dihasilkan secara otomatis dari foto. Anda dapat menyesuaikan teksnya.
                     </p>
-                    <div className="bg-[#0d1424] border border-slate-800 rounded-xl p-3.5 text-xs text-slate-200 leading-relaxed font-normal">
+                    <div className="bg-[#0D0F0E] border border-[#2A2E2C] rounded-xl p-3.5 text-xs text-[#F2F2F0] leading-relaxed font-normal">
                       Terdeteksi kerusakan permukaan jalan berlubang dengan kedalaman ~8cm. Potensi bahaya bagi pengguna jalan.
                     </div>
                   </div>
@@ -220,27 +220,27 @@ export default function HowItWorksSection() {
               {/* STEP 3: VERIFIKASI APBD & LOKASI */}
               {/* ============================================================ */}
               {activeStep === 3 && (
-                <div className="bg-[#0b101d] border border-slate-800 rounded-2xl p-6 shadow-2xl space-y-4">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="bg-[#161918] border border-[#2A2E2C] rounded-2xl p-6 shadow-2xl space-y-4">
+                  <div className="flex items-center justify-between border-b border-[#2A2E2C] pb-3">
                     <div className="flex items-center gap-2">
-                      <CheckIcon className="w-5 h-5 text-emerald-400" />
-                      <span className="text-white font-bold text-base">Verifikasi APBD & Wilayah</span>
+                      <CheckIcon className="w-5 h-5 text-[#81C784]" />
+                      <span className="text-[#F2F2F0] font-bold text-base">Verifikasi APBD & Wilayah</span>
                     </div>
-                    <span className="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-1 rounded-full font-mono">
+                    <span className="text-xs bg-[#1B5E20]/30 text-[#81C784] border border-[#2E7D32]/40 px-2.5 py-1 rounded-full font-mono">
                       Matched
                     </span>
                   </div>
 
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-1">
-                      <span className="text-slate-400 text-xs">Lokasi Terverifikasi</span>
-                      <p className="text-white font-bold text-sm">Jakarta Selatan</p>
-                      <p className="text-slate-400 text-xs">Kecamatan Setiabudi</p>
+                    <div className="bg-[#0D0F0E] border border-[#2A2E2C] rounded-xl p-4 space-y-1">
+                      <span className="text-[#9BA39E] text-xs">Lokasi Terverifikasi</span>
+                      <p className="text-[#F2F2F0] font-bold text-sm">Jakarta Selatan</p>
+                      <p className="text-[#9BA39E] text-xs">Kecamatan Setiabudi</p>
                     </div>
-                    <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-4 space-y-1">
-                      <span className="text-slate-400 text-xs">Alokasi Anggaran</span>
-                      <p className="text-emerald-400 font-bold text-sm">Rp 450 Juta</p>
-                      <p className="text-slate-400 text-xs">APBD Tahun 2026</p>
+                    <div className="bg-[#0D0F0E] border border-[#2A2E2C] rounded-xl p-4 space-y-1">
+                      <span className="text-[#9BA39E] text-xs">Alokasi Anggaran</span>
+                      <p className="text-[#81C784] font-bold text-sm">Rp 450 Juta</p>
+                      <p className="text-[#9BA39E] text-xs">APBD Tahun 2026</p>
                     </div>
                   </div>
                 </div>
@@ -250,12 +250,8 @@ export default function HowItWorksSection() {
               {/* STEP 4: TRANSPARANSI PETA PUBLIK (EXACT MATCH FOR SCREENSHOT 2) */}
               {/* ============================================================ */}
               {activeStep === 4 && (
-                <div className="relative rounded-2xl overflow-hidden border border-slate-800 shadow-2xl h-[420px] bg-[#090d16]">
-                  <div className="absolute inset-0 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] opacity-70" />
-
-                  <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-48 h-48 bg-gradient-to-r from-red-500/50 via-amber-500/40 to-emerald-500/30 rounded-full blur-2xl pointer-events-none" />
-                  <div className="absolute bottom-1/4 left-1/3 w-36 h-36 bg-gradient-to-r from-red-500/60 via-amber-500/40 to-transparent rounded-full blur-xl pointer-events-none" />
-                  <div className="absolute top-1/3 right-1/4 w-32 h-32 bg-amber-500/40 rounded-full blur-xl pointer-events-none" />
+                <div className="relative rounded-2xl overflow-hidden border border-[#2A2E2C] shadow-2xl h-[420px] bg-[#0D0F0E]">
+                  <div className="absolute inset-0 bg-[radial-gradient(#2A2E2C_1px,transparent_1px)] [background-size:16px_16px] opacity-70" />
 
                   {/* Top Bar */}
                   <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
@@ -264,91 +260,52 @@ export default function HowItWorksSection() {
                         type="text"
                         disabled
                         value="Temukan lokasi..."
-                        className="bg-slate-950/90 text-slate-400 text-xs px-3.5 py-2 pl-8 rounded-full border border-slate-700/80 shadow-lg w-44"
+                        className="bg-[#161918] text-[#9BA39E] text-xs px-3.5 py-2 pl-8 rounded-full border border-[#2A2E2C] shadow-lg w-44"
                       />
-                      <SearchIcon className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                      <SearchIcon className="w-3.5 h-3.5 text-[#9BA39E] absolute left-2.5 top-2.5" />
                     </div>
-                    <button className="flex items-center gap-1.5 bg-slate-950/90 text-white text-xs font-bold px-3.5 py-2 rounded-full border border-slate-700/80 shadow-lg">
-                      <MapPinIcon className="w-3.5 h-3.5 text-red-500" />
+                    <button className="flex items-center gap-1.5 bg-[#161918] text-[#F2F2F0] text-xs font-bold px-3.5 py-2 rounded-full border border-[#2A2E2C] shadow-lg">
+                      <MapPinIcon className="w-3.5 h-3.5 text-[#81C784]" />
                       <span>Tandai Lokasi</span>
                     </button>
                   </div>
 
-                  {/* Map Markers & Clusters */}
+                  {/* Map Markers */}
                   <div className="absolute inset-0 pointer-events-none">
-
-                    {/* Cluster Merah Kiri Atas */}
                     <div className="absolute top-14 left-20 flex flex-col items-center">
-                      <div className="w-9 h-9 rounded-full bg-red-600 text-white font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-white">
+                      <div className="w-9 h-9 rounded-full bg-[#2E7D32] text-[#F2F2F0] font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-[#161918]">
                         2
                       </div>
                     </div>
 
-                    {/* Cluster Merah Tengah Atas */}
                     <div className="absolute top-10 left-1/2 -translate-x-3 flex flex-col items-center">
-                      <div className="w-9 h-9 rounded-full bg-red-600 text-white font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-white">
+                      <div className="w-9 h-9 rounded-full bg-[#2E7D32] text-[#F2F2F0] font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-[#161918]">
                         36
                       </div>
                     </div>
 
-                    {/* Cluster Merah Kanan Atas */}
                     <div className="absolute top-14 right-20 flex flex-col items-center">
-                      <div className="w-9 h-9 rounded-full bg-red-600 text-white font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-white">
+                      <div className="w-9 h-9 rounded-full bg-[#2E7D32] text-[#F2F2F0] font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-[#161918]">
                         2
                       </div>
                     </div>
 
-                    {/* Pin Ungu — Ikon Orang / User (seperti screenshot 1) */}
-                    <div className="absolute top-24 left-1/2 -translate-x-8 flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-purple-600 border-2 border-white shadow-xl flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                        </svg>
-                      </div>
-                      <div className="w-1.5 h-3 bg-purple-600 rounded-b-full" />
-                    </div>
-
-                    {/* Pin Pink — Ikon Segitiga Peringatan */}
-                    <div className="absolute top-44 right-1/3 flex flex-col items-center">
-                      <div className="w-10 h-10 rounded-full bg-pink-500 border-2 border-white shadow-xl flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
-                          <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z" />
-                        </svg>
-                      </div>
-                      <div className="w-1.5 h-3 bg-pink-500 rounded-b-full" />
-                    </div>
-
-                    {/* Pin Hijau — Ikon Jam / Clock */}
+                    {/* Pin Hijau */}
                     <div className="absolute bottom-28 right-2/5 flex flex-col items-center" style={{ right: '38%' }}>
-                      <div className="w-10 h-10 rounded-full bg-emerald-600 border-2 border-white shadow-xl flex items-center justify-center">
-                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="currentColor">
+                      <div className="w-10 h-10 rounded-full bg-[#2E7D32] border-2 border-[#161918] shadow-xl flex items-center justify-center">
+                        <svg className="w-5 h-5 text-[#F2F2F0]" viewBox="0 0 24 24" fill="currentColor">
                           <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm.5 5v5.25l4.5 2.67-.75 1.23L11 13V7h1.5z" />
                         </svg>
                       </div>
-                      <div className="w-1.5 h-3 bg-emerald-600 rounded-b-full" />
+                      <div className="w-1.5 h-3 bg-[#2E7D32] rounded-b-full" />
                     </div>
-
-                    {/* Cluster Merah Kiri Bawah */}
-                    <div className="absolute bottom-16 left-16 flex flex-col items-center">
-                      <div className="w-9 h-9 rounded-full bg-red-600 text-white font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-white">
-                        2
-                      </div>
-                    </div>
-
-                    {/* Cluster Merah Kanan Tengah */}
-                    <div className="absolute top-1/2 right-16 flex flex-col items-center">
-                      <div className="w-9 h-9 rounded-full bg-red-600 text-white font-extrabold text-sm flex items-center justify-center shadow-lg border-2 border-white">
-                        2
-                      </div>
-                    </div>
-
                   </div>
 
                   {/* Bottom Action */}
                   <div className="absolute bottom-4 left-4 z-10">
                     <a
                       href="#map"
-                      className="inline-flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs px-4 py-2 rounded-full shadow-xl transition-all"
+                      className="inline-flex items-center gap-2 bg-[#2E7D32] hover:bg-[#1B5E20] text-[#F2F2F0] font-bold text-xs px-4 py-2 rounded-full shadow-xl transition-all"
                     >
                       <MapPinIcon className="w-3.5 h-3.5" />
                       <span>Buka Peta Publik Penuh</span>

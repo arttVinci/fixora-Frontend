@@ -1,6 +1,16 @@
 import { useState, useMemo } from 'react';
 import type { IssueCategory } from '../../types';
 import type { FilterState } from './InteractiveMap';
+import {
+  RoadIcon,
+  BridgeIcon,
+  TrashIcon,
+  BuildingIcon,
+  DrainageIcon,
+  AiRobotIcon,
+  UserIcon,
+  CloseIcon,
+} from '../Icons';
 
 interface MapFilterBarProps {
   filters: FilterState;
@@ -8,12 +18,15 @@ interface MapFilterBarProps {
 }
 
 const categories: IssueCategory[] = ['jalan', 'jembatan', 'sampah', 'bangunan', 'drainase'];
-const categoryLabels: Record<IssueCategory, string> = {
-  jalan: '🚗 Jalan',
-  jembatan: '🌉 Jembatan',
-  sampah: '🗑️ Sampah',
-  bangunan: '🏢 Bangunan',
-  drainase: '🌊 Drainase',
+const categoryConfig: Record<
+  IssueCategory,
+  { label: string; icon: React.ReactNode }
+> = {
+  jalan: { label: 'Jalan', icon: <RoadIcon className="w-3.5 h-3.5" /> },
+  jembatan: { label: 'Jembatan', icon: <BridgeIcon className="w-3.5 h-3.5" /> },
+  sampah: { label: 'Sampah', icon: <TrashIcon className="w-3.5 h-3.5" /> },
+  bangunan: { label: 'Bangunan', icon: <BuildingIcon className="w-3.5 h-3.5" /> },
+  drainase: { label: 'Drainase', icon: <DrainageIcon className="w-3.5 h-3.5" /> },
 };
 
 export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarProps) {
@@ -50,12 +63,11 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="absolute top-4 right-4 z-[1000] bg-fixora-primary text-white rounded-full shadow-xl p-4 flex items-center gap-2 hover:opacity-90 transition-all"
+        className="absolute top-4 right-4 z-[1000] bg-[#2E7D32] text-[#F2F2F0] rounded-full shadow-xl px-4 py-2.5 flex items-center gap-2 hover:bg-[#1B5E20] transition-all border border-[#2E7D32]/50"
       >
-        <span className="text-xl">🔍</span>
-        <span className="hidden md:inline font-medium">Filter</span>
+        <span className="font-semibold text-xs">Filter</span>
         {activeFilterCount > 0 && (
-          <span className="bg-fixora-accent text-white text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center">
+          <span className="bg-[#161918] text-[#81C784] text-xs font-bold rounded-full px-2 py-0.5 min-w-[20px] text-center border border-[#2E7D32]/40">
             {activeFilterCount}
           </span>
         )}
@@ -64,36 +76,36 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
   }
 
   return (
-    <div className="absolute top-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-[1000] backdrop-blur-xl bg-slate-950/90 rounded-2xl shadow-xl border border-slate-700/50 p-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto">
+    <div className="absolute top-4 left-4 right-4 md:left-auto md:right-4 md:w-96 z-[1000] backdrop-blur-xl bg-[#161918]/95 rounded-2xl shadow-xl border border-[#2A2E2C] p-6 flex flex-col gap-5 max-h-[80vh] overflow-y-auto">
       <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-white">Filter Laporan</h2>
+        <h2 className="text-lg font-bold text-[#F2F2F0]">Filter Laporan</h2>
         <button
           onClick={() => setIsExpanded(false)}
-          className="text-slate-400 hover:text-white hover:bg-slate-800 rounded-full p-1.5 transition-all"
+          className="text-[#9BA39E] hover:text-[#F2F2F0] hover:bg-[#1F2422] rounded-full p-1.5 transition-all cursor-pointer"
         >
-          ✕
+          <CloseIcon className="w-4 h-4" />
         </button>
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="font-semibold text-slate-300">Filter Kategori</h3>
+        <h3 className="font-semibold text-[#9BA39E] text-xs uppercase tracking-wider">Filter Kategori</h3>
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={selectAllCategories}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               filters.categories.length === categories.length
-                ? 'bg-fixora-primary text-white border-fixora-primary'
-                : 'bg-slate-900/50 text-slate-300 border-slate-700 hover:bg-slate-800'
+                ? 'bg-[#2E7D32] text-[#F2F2F0] border-[#2E7D32]'
+                : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:bg-[#1F2422]'
             }`}
           >
             Semua
           </button>
           <button
             onClick={clearCategories}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
               filters.categories.length === 0
-                ? 'bg-fixora-primary text-white border-fixora-primary'
-                : 'bg-slate-900/50 text-slate-300 border-slate-700 hover:bg-slate-800'
+                ? 'bg-[#2E7D32] text-[#F2F2F0] border-[#2E7D32]'
+                : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:bg-[#1F2422]'
             }`}
           >
             Hapus
@@ -102,20 +114,21 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
             <button
               key={category}
               onClick={() => toggleCategory(category)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 filters.categories.includes(category)
-                  ? 'bg-fixora-primary text-white border-fixora-primary'
-                  : 'bg-slate-900/50 text-slate-300 border-slate-700 hover:bg-slate-800'
+                  ? 'bg-[#2E7D32] text-[#F2F2F0] border-[#2E7D32]'
+                  : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:bg-[#1F2422]'
               }`}
             >
-              {categoryLabels[category]}
+              {categoryConfig[category].icon}
+              <span>{categoryConfig[category].label}</span>
             </button>
           ))}
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="font-semibold text-slate-300">Filter Durasi Mangkrak</h3>
+        <h3 className="font-semibold text-[#9BA39E] text-xs uppercase tracking-wider">Filter Durasi Mangkrak</h3>
         <div className="flex gap-2 flex-wrap">
           {[
             { key: 'all' as const, label: 'Semua Durasi' },
@@ -129,12 +142,12 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
               <button
                 key={option.key}
                 onClick={() => handleFilterChange({ ...filters, duration: option.key })}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                   isActive
                     ? isCritical
-                      ? 'bg-fixora-accent text-white border-fixora-accent'
-                      : 'bg-fixora-primary text-white border-fixora-primary'
-                    : 'bg-slate-900/50 text-slate-300 border-slate-700 hover:bg-slate-800'
+                      ? 'bg-rose-900/60 text-rose-300 border-rose-600'
+                      : 'bg-[#2E7D32] text-[#F2F2F0] border-[#2E7D32]'
+                    : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:bg-[#1F2422]'
                 }`}
               >
                 {option.label}
@@ -145,23 +158,24 @@ export default function MapFilterBar({ filters, onFiltersChange }: MapFilterBarP
       </div>
 
       <div className="flex flex-col gap-3">
-        <h3 className="font-semibold text-slate-300">Filter Sumber Data</h3>
+        <h3 className="font-semibold text-[#9BA39E] text-xs uppercase tracking-wider">Filter Sumber Data</h3>
         <div className="flex gap-2 flex-wrap">
           {[
-            { key: 'all' as const, label: 'Semua Data' },
-            { key: 'citizen' as const, label: '👤 Laporan Warga' },
-            { key: 'ai_media' as const, label: '📰 Media Online' },
+            { key: 'all' as const, label: 'Semua Data', icon: null },
+            { key: 'citizen' as const, label: 'Laporan Warga', icon: <UserIcon className="w-3.5 h-3.5" /> },
+            { key: 'ai_media' as const, label: 'Terdeteksi AI', icon: <AiRobotIcon className="w-3.5 h-3.5" /> },
           ].map((option) => (
             <button
               key={option.key}
               onClick={() => handleFilterChange({ ...filters, source: option.key })}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
                 filters.source === option.key
-                  ? 'bg-fixora-primary text-white border-fixora-primary'
-                  : 'bg-slate-900/50 text-slate-300 border-slate-700 hover:bg-slate-800'
+                  ? 'bg-[#2E7D32] text-[#F2F2F0] border-[#2E7D32]'
+                  : 'bg-[#0D0F0E] text-[#9BA39E] border-[#2A2E2C] hover:bg-[#1F2422]'
               }`}
             >
-              {option.label}
+              {option.icon}
+              <span>{option.label}</span>
             </button>
           ))}
         </div>

@@ -1,33 +1,56 @@
-import { useEffect } from 'react';
-import type { IssueReport } from '../../types';
+import { useEffect, useState } from 'react';
+import type { IssueReport, IssueCategory } from '../../types';
 import StatusHistoryTimeline from './StatusHistoryTimeline';
+import { getDurationDays } from '../../utils/dateUtils';
+import {
+  CheckIcon,
+  MapPinIcon,
+  RoadIcon,
+  BridgeIcon,
+  TrashIcon,
+  BuildingIcon,
+  DrainageIcon,
+  AiRobotIcon,
+  UserIcon,
+  ClockIcon,
+} from '../Icons';
 
-const categoryLabels: Record<string, string> = {
-  jalan: '🚧 Jalan Rusak',
-  jembatan: '🌉 Jembatan',
-  sampah: '🗑️ Sampah',
-  bangunan: '🏗️ Bangunan',
-  drainase: '🌊 Drainase',
+const categoryConfig: Record<
+  IssueCategory,
+  { label: string; icon: React.ReactNode }
+> = {
+  jalan: { label: 'Jalan Rusak', icon: <RoadIcon className="w-3.5 h-3.5" /> },
+  jembatan: { label: 'Jembatan Rawan', icon: <BridgeIcon className="w-3.5 h-3.5" /> },
+  sampah: { label: 'Sampah Menumpuk', icon: <TrashIcon className="w-3.5 h-3.5" /> },
+  bangunan: { label: 'Bangunan Terbengkalai', icon: <BuildingIcon className="w-3.5 h-3.5" /> },
+  drainase: { label: 'Drainase Tersumbat', icon: <DrainageIcon className="w-3.5 h-3.5" /> },
 };
 
-const sourceLabels: Record<IssueReport['source'], string> = {
-  citizen: 'Laporan Warga',
-  ai_media: 'Media Online',
+const sourceLabels: Record<string, { label: string; icon: React.ReactNode }> = {
+  citizen: { label: 'Laporan Warga', icon: <UserIcon className="w-3.5 h-3.5 text-[#81C784]" /> },
+  ai_media: { label: 'Terdeteksi AI (Media)', icon: <AiRobotIcon className="w-3.5 h-3.5 text-[#81C784]" /> },
 };
 
-const statusConfig: Record<string, { label: string; badge: string }> = {
-  new: { label: 'New', badge: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' },
-  open: { label: 'Open', badge: 'bg-orange-500/20 text-orange-400 border-orange-500/30' },
-  closed: { label: 'Closed', badge: 'bg-green-500/20 text-green-400 border-green-500/30' },
-  archived: { label: 'Archived', badge: 'bg-slate-500/20 text-slate-400 border-slate-500/30' },
-};
+import { getStatusBadge } from '../../utils/statusUtils';
 
 interface ReportDetailModalProps {
   issue: IssueReport | null;
   onClose: () => void;
+  onConfirmIssue?: (issueId: string) => void;
 }
 
-export default function ReportDetailModal({ issue, onClose }: ReportDetailModalProps) {
+export default function ReportDetailModal({ issue, onClose, onConfirmIssue }: ReportDetailModalProps) {
+  const [hasConfirmed, setHasConfirmed] = useState(false);
+  const [confirmCount, setConfirmCount] = useState(issue?.confirmationCount || 0);
+  const [showCopiedToast, setShowCopiedToast] = useState(false);
+
+  useEffect(() => {
+    if (issue) {
+      setConfirmCount(issue.confirmationCount || 0);
+      setHasConfirmed(false);
+    }
+  }, [issue]);
+
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -38,25 +61,50 @@ export default function ReportDetailModal({ issue, onClose }: ReportDetailModalP
 
   if (!issue) return null;
 
-  const status = statusConfig[issue.status];
+  const status = getStatusBadge(issue.status);
+  const durationDays = getDurationDays(issue.reportedAt);
+
+  const handleConfirm = () => {
+    if (hasConfirmed) return;
+    setHasConfirmed(true);
+    setConfirmCount(prev => prev + 1);
+    if (onConfirmIssue) {
+      onConfirmIssue(issue.id);
+    }
+  };
+
+  const handleShare = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setShowCopiedToast(true);
+      setTimeout(() => setShowCopiedToast(false), 2500);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-hidden glass-card rounded-3xl animate-slide-up flex flex-col">
-        <div className="flex items-start justify-between p-6 border-b border-white/10">
+      <div className="absolute inset-0 bg-[#0D0F0E]/85 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-lg max-h-[90vh] overflow-hidden bg-[#161918] border border-[#2A2E2C] rounded-3xl shadow-2xl animate-slide-up flex flex-col">
+        {/* Header */}
+        <div className="flex items-start justify-between p-5 sm:p-6 border-b border-[#2A2E2C]">
           <div className="flex-1 min-w-0 pr-4">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-xs text-slate-500 font-mono">#{issue.id}</span>
-              <span className={`text-xs px-2 py-0.5 rounded-full border font-semibold ${status.badge}`}>
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-xs text-[#9BA39E] font-mono">#{issue.id}</span>
+              <span className={`text-xs px-2.5 py-0.5 rounded-full border font-semibold ${status.badge}`}>
                 {status.label}
               </span>
+              {durationDays > 0 && (
+                <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium inline-flex items-center gap-1">
+                  <ClockIcon className="w-3 h-3 text-amber-300" />
+                  <span>Dibiarkan {durationDays} Hari</span>
+                </span>
+              )}
             </div>
-            <h2 className="text-lg font-bold text-white leading-snug">{issue.title}</h2>
+            <h2 className="text-base sm:text-lg font-bold text-[#F2F2F0] leading-snug">{issue.title}</h2>
           </div>
           <button
             onClick={onClose}
-            className="w-9 h-9 flex-shrink-0 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 rounded-full transition-all"
+            className="w-9 h-9 flex-shrink-0 flex items-center justify-center text-[#9BA39E] hover:text-[#F2F2F0] hover:bg-[#1F2422] rounded-full transition-all cursor-pointer"
             aria-label="Tutup"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -65,66 +113,108 @@ export default function ReportDetailModal({ issue, onClose }: ReportDetailModalP
           </button>
         </div>
 
-        <div className="overflow-y-auto flex-1 scrollbar-hide">
+        {/* Content Body */}
+        <div className="overflow-y-auto flex-1 scrollbar-thin">
           {issue.imageUrl && (
-            <img
-              src={issue.imageUrl}
-              alt={issue.title}
-              className="w-full h-48 object-cover"
-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
-            />
+            <div className="relative w-full h-52 bg-[#0D0F0E] overflow-hidden">
+              <img
+                src={issue.imageUrl}
+                alt={issue.title}
+                className="w-full h-full object-cover"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-[#161918] via-transparent to-transparent" />
+            </div>
           )}
 
-          <div className="p-6">
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="badge-primary text-xs">{categoryLabels[issue.category]}</span>
-              <span className="badge-outline text-xs">{sourceLabels[issue.source]}</span>
+          <div className="p-5 sm:p-6 space-y-5">
+            {/* Tags & Metadata */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#1B5E20]/30 text-[#81C784] border border-[#2E7D32]/40 rounded-full text-xs font-semibold">
+                {categoryConfig[issue.category]?.icon}
+                <span>{categoryConfig[issue.category]?.label || issue.category}</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-[#0D0F0E] text-[#9BA39E] border border-[#2A2E2C] rounded-full text-xs font-medium">
+                {sourceLabels[issue.source]?.icon}
+                <span>{sourceLabels[issue.source]?.label || issue.source}</span>
+              </span>
               {issue.location && (
-                <span className="flex items-center gap-1 text-xs text-slate-400">
-                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  {issue.location}
+                <span className="flex items-center gap-1.5 text-xs text-[#9BA39E] bg-[#0D0F0E] px-3 py-1 rounded-full border border-[#2A2E2C]">
+                  <MapPinIcon className="w-3.5 h-3.5 text-[#81C784]" />
+                  <span>{issue.location}</span>
                 </span>
               )}
             </div>
 
+            {/* Description */}
             {issue.description && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-2">Deskripsi</h3>
-                <p className="text-sm text-slate-200 leading-relaxed">{issue.description}</p>
+              <div>
+                <h3 className="text-xs font-semibold text-[#9BA39E] uppercase tracking-wider mb-2 font-mono">
+                  Deskripsi Kerusakan
+                </h3>
+                <p className="text-sm text-[#F2F2F0] leading-relaxed bg-[#0D0F0E]/60 p-3.5 rounded-xl border border-[#2A2E2C]">
+                  {issue.description}
+                </p>
               </div>
             )}
 
-            <StatusHistoryTimeline history={issue.statusHistory} />
+            {/* Verification Status (US-04 PRD) */}
+            <div className="p-4 rounded-2xl bg-[#0D0F0E]/80 border border-[#2E7D32]/35 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-semibold text-[#81C784] flex items-center gap-1.5">
+                  <CheckIcon className="w-4 h-4" />
+                  <span>Akuntabilitas Publik</span>
+                </div>
+                <div className="text-xs text-[#9BA39E] mt-0.5">
+                  <strong className="text-[#F2F2F0]">{confirmCount} warga</strong> telah memverifikasi titik ini masih bermasalah
+                </div>
+              </div>
+              <button
+                onClick={handleConfirm}
+                disabled={hasConfirmed}
+                className={`py-2 px-4 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 flex-shrink-0 cursor-pointer ${
+                  hasConfirmed
+                    ? 'bg-[#1B5E20]/40 text-[#81C784] border border-[#2E7D32]/50 cursor-default'
+                    : 'bg-[#2E7D32] hover:bg-[#1B5E20] text-[#F2F2F0] shadow-md active:scale-95'
+                }`}
+              >
+                <CheckIcon className="w-4 h-4" />
+                <span>{hasConfirmed ? 'Sudah Dikonfirmasi' : 'Konfirmasi Masih Rusak (+1)'}</span>
+              </button>
+            </div>
+
+            {/* Status History Timeline */}
+            <div>
+              <h3 className="text-xs font-semibold text-[#9BA39E] uppercase tracking-wider mb-3 font-mono">
+                Riwayat & Progres Penanganan
+              </h3>
+              <StatusHistoryTimeline history={issue.statusHistory} />
+            </div>
           </div>
         </div>
 
-        <div className="p-4 border-t border-white/10 flex items-center gap-3">
-          <button className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm px-3 py-2 rounded-lg hover:bg-white/5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
-            </svg>
-            Bagikan
-          </button>
-          <button className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors text-sm px-3 py-2 rounded-lg hover:bg-white/5">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-            </svg>
-            Cetak
-          </button>
+        {/* Footer Actions */}
+        <div className="p-4 border-t border-[#2A2E2C] flex items-center justify-between bg-[#121514]">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 text-[#9BA39E] hover:text-[#F2F2F0] transition-colors text-xs px-3 py-2 rounded-xl hover:bg-[#1F2422] border border-[#2A2E2C] cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3" />
+                <circle cx="6" cy="12" r="3" />
+                <circle cx="18" cy="19" r="3" />
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+              </svg>
+              <span>{showCopiedToast ? 'Tautan Disalin!' : 'Bagikan'}</span>
+            </button>
+          </div>
           <button
             onClick={onClose}
-            className="ml-auto btn-outline text-sm py-2 px-4"
+            className="text-xs font-semibold py-2 px-5 rounded-xl bg-[#161918] hover:bg-[#1F2422] border border-[#2A2E2C] text-[#F2F2F0] transition-colors cursor-pointer"
           >
             Tutup
-          </button>
-          <button className="btn-primary text-sm py-2 px-4 flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            Ikuti
           </button>
         </div>
       </div>

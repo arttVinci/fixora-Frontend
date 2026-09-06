@@ -88,17 +88,17 @@ export default function HeroMapBackground() {
         style={{
           background: `
             linear-gradient(to right, 
-              #080c14 0%, 
-              #080c14 38%, 
-              rgba(8, 12, 20, 0.8) 60%, 
-              rgba(8, 12, 20, 0.25) 85%,
-              rgba(8, 12, 20, 0.5) 100%
+              #0D0F0E 0%, 
+              #0D0F0E 32%, 
+              rgba(13, 15, 14, 0.7) 55%, 
+              rgba(13, 15, 14, 0.2) 80%,
+              rgba(13, 15, 14, 0.4) 100%
             ),
             linear-gradient(to bottom,
-              #080c14 0%,
-              transparent 12%,
-              transparent 88%,
-              #080c14 100%
+              #0D0F0E 0%,
+              transparent 10%,
+              transparent 90%,
+              #0D0F0E 100%
             )
           `
         }}

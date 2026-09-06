@@ -1,8 +1,10 @@
 import type { IssueCategory, IssueReport } from '../types';
 import { getDurationDays } from './dateUtils';
 
-export function isUnresolvedStatus(status: IssueReport['status']): boolean {
-  return status === 'new' || status === 'open';
+export function isUnresolvedStatus(status?: string | null): boolean {
+  if (!status) return true;
+  const s = status.toLowerCase().trim();
+  return s !== 'resolved' && s !== 'closed' && s !== 'selesai' && s !== 'archived' && s !== 'rejected';
 }
 
 export function isCriticalReport(issue: IssueReport): boolean {
@@ -21,9 +23,10 @@ export type ReportStats = {
 export function computeReportStats(issues: IssueReport[]): ReportStats {
   const totalReports = issues.length;
   const criticalReports = issues.filter(isCriticalReport).length;
-  const resolvedReports = issues.filter(
-    (i) => i.status === 'closed' || i.status === 'archived'
-  ).length;
+  const resolvedReports = issues.filter((i) => {
+    const s = i.status?.toLowerCase().trim();
+    return s === 'resolved' || s === 'closed' || s === 'selesai';
+  }).length;
   const resolutionRate = totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 0;
   const activeReports = issues.filter((i) => isUnresolvedStatus(i.status)).length;
 

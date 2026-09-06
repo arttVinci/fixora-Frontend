@@ -1,43 +1,44 @@
-@import 'leaflet/dist/leaflet.css';
-@import 'leaflet.markercluster/dist/MarkerCluster.css';
-@import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
+@import "leaflet/dist/leaflet.css";
 
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --color-primary-50: #f0fdfa;
-  --color-primary-100: #ccfbf1;
-  --color-primary-200: #99f6e4;
-  --color-primary-300: #5eead4;
-  --color-primary-400: #2dd4bf;
-  --color-primary-500: #14b8a6;
-  --color-primary-600: #0d9488;
-  --color-primary-700: #0f766e;
-  --color-primary-800: #115e59;
-  --color-primary-900: #134e4a;
-  --color-primary-950: #042f2e;
+  --color-primary-50: #e8f5e9;
+  --color-primary-100: #c8e6c9;
+  --color-primary-200: #a5d6a7;
+  --color-primary-300: #81c784;
+  --color-primary-400: #4caf50;
+  --color-primary-500: #2e7d32;
+  --color-primary-600: #1b5e20;
+  --color-primary-700: #144717;
+  --color-primary-800: #0e3010;
+  --color-primary-900: #081a09;
+  --color-primary-950: #040d05;
 
-  --color-dark-surface: #0b1326;
-  --color-dark-surface-low: #131b2e;
-  --color-dark-surface-high: #2d3449;
+  --color-dark-surface: #0d0f0e;
+  --color-dark-surface-low: #161918;
+  --color-dark-surface-high: #1f2422;
+  --color-border: #2a2e2c;
+  --color-text-primary: #f2f2f0;
+  --color-text-secondary: #9ba39e;
 
-  --glass-bg: rgba(255, 255, 255, 0.05);
-  --glass-border: rgba(255, 255, 255, 0.1);
-  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --glass-bg: rgba(22, 25, 24, 0.7);
+  --glass-border: #2a2e2c;
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: var(--color-dark-surface);
-  color: #ffffff;
+  background: #0d0f0e;
+  color: #f2f2f0;
 }
 
 #root {
@@ -47,97 +48,77 @@ body {
 
 @layer utilities {
   .font-heading {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    font-family: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
   }
 
   .glass {
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(22, 25, 24, 0.6);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #2a2e2c;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
   .glass-dark {
-    background: rgba(11, 19, 38, 0.9);
+    background: rgba(22, 25, 24, 0.88);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid #2a2e2c;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
   }
 
   .glass-card {
-    background: rgba(19, 27, 46, 0.8);
+    background: rgba(22, 25, 24, 0.78);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid #2a2e2c;
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   }
 
   .grid-pattern {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
-    background-size: 40px 40px;
+      linear-gradient(to right, rgba(155, 163, 158, 0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(155, 163, 158, 0.08) 1px, transparent 1px);
+    background-size: 32px 32px;
   }
 
-  .hero-cursor-glow {
-    opacity: 0;
-    background:
-      radial-gradient(520px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-        rgba(20, 184, 166, 0.22),
-        transparent 45%),
-      radial-gradient(720px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-        rgba(59, 130, 246, 0.1),
-        transparent 55%);
-    transition: opacity 0.4s ease;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-    .hero-cursor-section[data-cursor-active='true'] .hero-cursor-glow {
-      opacity: 1;
-    }
+  .grid-technical {
+    background-image:
+      linear-gradient(to right, rgba(155, 163, 158, 0.07) 1px, transparent 1px),
+      linear-gradient(
+        to bottom,
+        rgba(155, 163, 158, 0.07) 1px,
+        transparent 1px
+      ),
+      linear-gradient(to right, rgba(46, 125, 50, 0.16) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(46, 125, 50, 0.16) 1px, transparent 1px);
+    background-size:
+      32px 32px,
+      32px 32px,
+      128px 128px,
+      128px 128px;
   }
 
   .grid-pattern-lg {
     background-image:
-      linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
-    background-size: 80px 80px;
-  }
-
-  .glow-primary {
-    box-shadow:
-      0 0 20px rgba(20, 184, 166, 0.2),
-      0 0 40px rgba(20, 184, 166, 0.1);
-  }
-
-  .glow-primary-lg {
-    box-shadow:
-      0 0 30px rgba(20, 184, 166, 0.3),
-      0 0 60px rgba(20, 184, 166, 0.15);
-  }
-
-  .glow-chat {
-    box-shadow:
-      0 0 40px rgba(0, 76, 237, 0.12),
-      0 0 80px rgba(0, 76, 237, 0.06),
-      0 25px 50px rgba(0, 0, 0, 0.4);
-  }
-
-  .text-glow {
-    text-shadow: 0 0 20px rgba(20, 184, 166, 0.5);
-  }
-
-  .text-glow-white {
-    text-shadow: 0 0 30px rgba(255, 255, 255, 0.15);
+      linear-gradient(to right, rgba(155, 163, 158, 0.09) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(155, 163, 158, 0.09) 1px, transparent 1px);
+    background-size: 64px 64px;
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #14b8a6 0%, #2dd4bf 50%, #5eead4 100%);
+    background: linear-gradient(135deg, #4caf50 0%, #2e7d32 50%, #81c784 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 
   .delay-100 {
@@ -184,7 +165,6 @@ body {
     animation-delay: 0.9s;
   }
 
-
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -227,9 +207,58 @@ body {
   }
 }
 
+@keyframes scanner-sweep {
+  0% {
+    top: 2%;
+    opacity: 0.3;
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    top: 94%;
+    opacity: 0.3;
+  }
+}
+
+.animate-scanner-sweep {
+  animation: scanner-sweep 2.8s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-radar {
+  0%, 100% {
+    transform: scale(0.98);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+.animate-pulse-radar {
+  animation: pulse-radar 3s infinite ease-in-out;
+}
+
+@keyframes laser-glow {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(46, 125, 50, 0.4), 0 0 24px rgba(76, 175, 80, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(129, 199, 132, 0.8), 0 0 48px rgba(46, 125, 50, 0.5);
+  }
+}
+
+.animate-laser-glow {
+  animation: laser-glow 2.5s infinite ease-in-out;
+}
+
 @layer components {
   .btn-primary {
-    @apply bg-primary-500 text-white font-semibold px-6 py-3 rounded-xl hover:bg-primary-600 active:bg-primary-700 transition-all duration-300 ease-out shadow-lg hover:shadow-xl hover:shadow-primary-500/20;
+    @apply bg-primary-500 text-white font-semibold px-6 py-3 rounded-xl hover:bg-primary-600 active:bg-primary-700 transition-all duration-300 ease-out shadow-md;
   }
 
   .btn-outline {
@@ -238,10 +267,6 @@ body {
 
   .btn-ghost {
     @apply text-primary-400 font-semibold px-4 py-2 rounded-lg hover:text-white hover:bg-white/5 transition-all duration-300 ease-out;
-  }
-
-  .btn-primary-glow {
-    @apply bg-primary-500 text-white font-semibold px-6 py-3 rounded-xl hover:bg-primary-600 active:bg-primary-700 transition-all duration-300 ease-out shadow-glow hover:shadow-glow-lg;
   }
 }
 
@@ -276,7 +301,6 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -286,35 +310,78 @@ body {
   }
 }
 
-.leaflet-popup-content-wrapper,
+.leaflet-popup {
+  z-index: 1000 !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: normal !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: #161918 !important;
+  color: #f2f2f0 !important;
+  border: 1px solid #2a2e2c !important;
+  border-radius: 18px !important;
+  box-shadow:
+    0 25px 50px -12px rgba(0, 0, 0, 0.75),
+    0 0 0 1px rgba(255, 255, 255, 0.05) !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+}
+
 .leaflet-popup-tip {
-  background: #0b1326 !important;
-  color: #ffffff !important;
-  border: 1px solid rgba(255, 255, 255, 0.15) !important;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+  background: #161918 !important;
+  color: #f2f2f0 !important;
+  border: 1px solid #2a2e2c !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
 }
 
 .leaflet-popup-tip-container {
   overflow: hidden;
 }
 
-.leaflet-popup-content {
-  margin: 12px 14px !important;
-  line-height: 1.4 !important;
+.leaflet-container a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.leaflet-popup-content a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .leaflet-container a.leaflet-popup-close-button {
-  color: #94a3b8 !important;
-  padding: 6px 8px 0 0 !important;
-  font-size: 16px !important;
+  color: #9ba39e !important;
+  background: rgba(13, 15, 14, 0.75) !important;
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  border-radius: 9999px !important;
+  width: 26px !important;
+  height: 26px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  top: 10px !important;
+  right: 10px !important;
+  padding: 0 !important;
+  font-size: 14px !important;
+  backdrop-filter: blur(8px) !important;
+  transition: all 0.2s ease !important;
+  z-index: 20 !important;
 }
 
 .leaflet-container a.leaflet-popup-close-button:hover {
-  color: #ffffff !important;
+  color: #f2f2f0 !important;
+  background: rgba(46, 125, 50, 0.8) !important;
+  border-color: #4caf50 !important;
+  transform: scale(1.08);
 }
 
 .leaflet-fade-anim .leaflet-popup {
-  transition: opacity 0.15s ease-out, transform 0.15s ease-out !important;
+  transition:
+    opacity 0.15s ease-out,
+    transform 0.15s ease-out !important;
   will-change: opacity, transform;
 }
 
@@ -328,5 +395,21 @@ body {
 .custom-marker:hover .marker-hover-tooltip,
 .marker-wrapper:hover .marker-hover-tooltip {
   opacity: 1 !important;
-  pointer-events: auto !important;
+  pointer-events: none !important;
+}
+
+/* ── Sidebar slide-in animation ── */
+@keyframes sidebar-in {
+  from {
+    opacity: 0;
+    transform: translateX(-16px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
+.animate-sidebar-in {
+  animation: sidebar-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }

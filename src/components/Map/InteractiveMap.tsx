@@ -1,9 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, memo, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { MapBounds } from '../../types/api';
 import {
   MapPinIcon,
-  SearchIcon,
-  CameraIcon,
   LocationTargetIcon,
   FlameIcon,
   SunIcon,
@@ -11,14 +10,11 @@ import {
 } from '../Icons';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents } from 'react-leaflet';
 import L from 'leaflet';
-import 'leaflet.markercluster';
-import MarkerClusterGroup from 'react-leaflet-cluster';
 import type { IssueReport, IssueCategory, SourceType } from '../../types';
 import { createCustomMarkerIcon } from './CustomMarker';
 import MarkerPopup from './MarkerPopup';
 import MapSidebar from './MapSidebar';
-import ReportDetailModal from './ReportDetailModal';
-import PhotoReportModal from './PhotoReportModal';
+
 import PinReportModal from './PinReportModal';
 import HeatmapLayer from './HeatmapLayer';
 import { getDurationDays } from '../../utils/dateUtils';
@@ -41,27 +37,47 @@ interface InteractiveMapProps {
   onBoundsChange?: (bounds: MapBounds) => void;
 }
 
+/* ── Leaflet helper hooks ─────────────────────────────────── */
+
 function MapControlsHelper({
-  onRegisterFlyTo
+  onRegisterFlyTo,
+  sidebarOpen,
 }: {
-  onRegisterFlyTo: (flyFn: (lat: number, lng: number) => void, zoomInFn: () => void, zoomOutFn: () => void) => void
+  onRegisterFlyTo: (
+    flyFn: (lat: number, lng: number, zoom?: number) => void,
+    zoomInFn: () => void,
+    zoomOutFn: () => void
+  ) => void;
+  sidebarOpen: boolean;
 }) {
   const map = useMap();
-
   useEffect(() => {
     onRegisterFlyTo(
-      (lat: number, lng: number) => map.flyTo([lat, lng], 15, { animate: true }),
+      (lat, lng, targetZoom) => {
+        // Keep current zoom if already zoomed in further, otherwise use at least zoom 16
+        const currentZoom = map.getZoom();
+        const zoom = targetZoom ?? (currentZoom > 15 ? currentZoom : 16);
+
+        // Offset to account for:
+        // 1. Floating sidebar covering the left side (horizontal)
+        // 2. Popup opening above the marker needs room (vertical)
+        const SIDEBAR_WIDTH = 390; // sidebar ~380px + padding
+        const POPUP_HEIGHT_OFFSET = 120; // push map center up slightly so popup fits comfortably
+        const xOffset = sidebarOpen ? SIDEBAR_WIDTH / 2 : 0;
+        const targetPoint = map.project([lat, lng], zoom);
+        const offsetPoint = L.point(targetPoint.x - xOffset, targetPoint.y - POPUP_HEIGHT_OFFSET);
+        const offsetLatLng = map.unproject(offsetPoint, zoom);
+        map.flyTo(offsetLatLng, zoom, { animate: true, duration: 0.8 });
+      },
       () => map.zoomIn(),
       () => map.zoomOut()
     );
-  }, [map, onRegisterFlyTo]);
-
+  }, [map, onRegisterFlyTo, sidebarOpen]);
   return null;
 }
 
-function BoundsWatcher({ onBoundsChange }: { onBoundsChange?: (bounds: MapBounds) => void }) {
+function BoundsWatcher({ onBoundsChange }: { onBoundsChange?: (b: MapBounds) => void }) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const map = useMapEvents({
     moveend() {
       if (!onBoundsChange) return;
@@ -69,60 +85,144 @@ function BoundsWatcher({ onBoundsChange }: { onBoundsChange?: (bounds: MapBounds
       timerRef.current = setTimeout(() => {
         const b = map.getBounds();
         onBoundsChange({
-          minLat: b.getSouth(),
-          maxLat: b.getNorth(),
-          minLng: b.getWest(),
-          maxLng: b.getEast(),
+          minLat: b.getSouth(), maxLat: b.getNorth(),
+          minLng: b.getWest(), maxLng: b.getEast(),
         });
       }, 600);
     },
   });
-
   return null;
 }
 
 function MapClickHandler({
-  isPinMode,
-  onMapClick,
+  isPinMode, onMapClick,
 }: {
   isPinMode: boolean;
   onMapClick: (lat: number, lng: number) => void;
 }) {
   const map = useMapEvents({
-    click(e) {
-      if (isPinMode) {
-        onMapClick(e.latlng.lat, e.latlng.lng);
-      }
-    },
+    click(e) { if (isPinMode) onMapClick(e.latlng.lat, e.latlng.lng); },
   });
-
-  useEffect(() => {
-    map.getContainer().style.cursor = isPinMode ? 'crosshair' : '';
-  }, [isPinMode, map]);
-
+  useEffect(() => { map.getContainer().style.cursor = isPinMode ? 'crosshair' : ''; }, [isPinMode, map]);
   return null;
 }
 
-export default function InteractiveMap({ issues, externalFilters, onAddIssue, onBoundsChange }: InteractiveMapProps) {
-  const [internalFilters] = useState<FilterState>({
-    categories: ['jalan', 'jembatan', 'sampah', 'bangunan', 'drainase'],
-    duration: 'all',
-    source: 'all',
+// Reveals a pending sidebar-selected marker once the map settles after its fly
+// animation. `moveend` fires when the fly completes, so zoomToShowLayer runs
+// against the settled view (instead of racing the animation with a timer).
+function MapSettleReveal({
+  pendingRevealRef,
+  onReveal,
+}: {
+  pendingRevealRef: { current: string | null };
+  onReveal: (id: string) => void;
+}) {
+  useMapEvents({
+    moveend() {
+      const id = pendingRevealRef.current;
+      if (!id) return;
+      pendingRevealRef.current = null;
+      onReveal(id);
+    },
   });
-  const [selectedIssue, setSelectedIssue] = useState<IssueReport | null>(null);
-  const [isPhotoMode, setIsPhotoMode] = useState(false);
+  return null;
+}
+
+/* ── Marker with auto-open popup ──────────────────────────── */
+
+const IssueMarker = memo(function IssueMarker({
+  issue,
+  isSelected,
+  onSelect,
+  onViewDetail,
+  registerMarker,
+  unregisterMarker,
+}: {
+  issue: IssueReport;
+  isSelected: boolean;
+  onSelect: (issue: IssueReport) => void;
+  onViewDetail: (issue: IssueReport) => void;
+  registerMarker: (id: string, marker: L.Marker | null) => void;
+  unregisterMarker: (id: string) => void;
+}) {
+  const markerRef = useRef<L.Marker>(null);
+
+  const markerIcon = useMemo(() => {
+    return createCustomMarkerIcon({
+      category: issue.category,
+      source: issue.source,
+      durationDays: getDurationDays(issue.reportedAt),
+      imageUrl: issue.imageUrl,
+      title: issue.title,
+    });
+  }, [issue.category, issue.source, issue.reportedAt, issue.imageUrl, issue.title]);
+
+  // Register the raw Leaflet marker instance so the cluster group can resolve
+  // and reveal it (zoom/spiderfy) when a report is selected.
+  useEffect(() => {
+    registerMarker(issue.id, markerRef.current);
+    return () => unregisterMarker(issue.id);
+  }, [issue.id, registerMarker, unregisterMarker]);
+
+  // Keep the popup state in sync when selection changes externally:
+  // opening/closing the popup only affects the map, so a re-render here would
+  // just re-run Leaflet's own popup toggling.
+  useEffect(() => {
+    const marker = markerRef.current;
+    if (!marker) return;
+    if (isSelected) {
+      if (!marker.isPopupOpen()) marker.openPopup();
+    } else if (marker.isPopupOpen()) {
+      marker.closePopup();
+    }
+  }, [isSelected]);
+
+  return (
+    <Marker
+      ref={markerRef}
+      position={[issue.latitude, issue.longitude]}
+      icon={markerIcon}
+      eventHandlers={{
+        click(e) {
+          // CRITICAL: Stop the click from bubbling to the map. leaflet.markercluster
+          // registers a map-level 'click' handler (_unspiderfyWrapper) that collapses
+          // any currently spiderfied cluster. Without this, clicking a spiderfied
+          // child marker triggers that handler, re-clustering all the pins and
+          // hiding the popup before the user can see it.
+          L.DomEvent.stopPropagation(e.originalEvent);
+
+          // Open the popup first so Leaflet binds it to this marker; the popup
+          // otherwise stays bound to the cluster/spiderfied position.
+          e.target.openPopup();
+          onSelect(issue);
+        },
+      }}
+    >
+      <MarkerPopup issue={issue} onViewDetail={onViewDetail} />
+    </Marker>
+  );
+});
+
+/* ── Main component ───────────────────────────────────────── */
+
+export default function InteractiveMap({
+  issues, onAddIssue, onBoundsChange,
+}: InteractiveMapProps) {
   const [isPinMode, setIsPinMode] = useState(false);
   const [pinLocation, setPinLocation] = useState<{ lat: number; lng: number } | null>(null);
-
-  const [isHeatmapEnabled, setIsHeatmapEnabled] = useState(true);
+  const [isHeatmapEnabled, setIsHeatmapEnabled] = useState(false);
   const [mapTheme, setMapTheme] = useState<'dark' | 'light'>('dark');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [selectedIssueId, setSelectedIssueId] = useState<string | null>(null);
 
-  const flyToRef = useRef<((lat: number, lng: number) => void) | null>(null);
+  // Sidebar filter state
+  const [selectedCategory, setSelectedCategory] = useState<IssueCategory | 'all'>('all');
+  const [selectedDuration, setSelectedDuration] = useState<'all' | 'lt30' | 'gt30' | 'gt90'>('all');
+
+  const flyToRef = useRef<((lat: number, lng: number, zoom?: number) => void) | null>(null);
   const zoomInRef = useRef<(() => void) | null>(null);
   const zoomOutRef = useRef<(() => void) | null>(null);
-
-  const flyToFn = useCallback((lat: number, lng: number) => flyToRef.current?.(lat, lng), []);
+  const flyToFn = useCallback((lat: number, lng: number, zoom?: number) => flyToRef.current?.(lat, lng, zoom), []);
   const zoomInFn = useCallback(() => zoomInRef.current?.(), []);
   const zoomOutFn = useCallback(() => zoomOutRef.current?.(), []);
 
@@ -132,326 +232,222 @@ export default function InteractiveMap({ issues, externalFilters, onAddIssue, on
   }, []);
 
   const handleRegisterFlyTo = useCallback(
-    (fly: (lat: number, lng: number) => void, inFn: () => void, outFn: () => void) => {
-      flyToRef.current = fly;
-      zoomInRef.current = inFn;
-      zoomOutRef.current = outFn;
-    },
-    []
+    (fly: (lat: number, lng: number, zoom?: number) => void, inFn: () => void, outFn: () => void) => {
+      flyToRef.current = fly; zoomInRef.current = inFn; zoomOutRef.current = outFn;
+    }, []
   );
 
   const pinMarkerIcon = L.divIcon({
     className: '',
-    html: `<div style="width:36px;height:36px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 16px rgba(239,68,68,0.5)"></div>`,
+    html: '<div style="width:36px;height:36px;background:linear-gradient(135deg,#2E7D32,#1B5E20);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #F2F2F0;box-shadow:0 6px 20px rgba(0,0,0,0.6)"></div>',
     iconSize: [36, 36],
     iconAnchor: [18, 36],
   });
 
-  const filters = externalFilters || internalFilters;
+  const filteredIssues = useMemo(
+    () =>
+      issues.filter((issue) => {
+        if (selectedCategory !== 'all' && issue.category !== selectedCategory) return false;
+        const d = getDurationDays(issue.reportedAt);
+        if (selectedDuration === 'lt30' && d >= 30) return false;
+        if (selectedDuration === 'gt30' && d < 30) return false;
+        if (selectedDuration === 'gt90' && d < 90) return false;
+        return true;
+      }),
+    [issues, selectedCategory, selectedDuration]
+  );
 
-  const filteredIssues = issues.filter((issue) => {
-    if (!filters.categories.includes(issue.category)) return false;
-    if (filters.source !== 'all' && issue.source !== filters.source) return false;
-    const durationDays = getDurationDays(issue.reportedAt);
-    if (filters.duration === 'lt7' && durationDays >= 7) return false;
-    if (filters.duration === '7to30' && (durationDays < 7 || durationDays > 30)) return false;
-    if (filters.duration === 'gt30' && durationDays <= 30) return false;
-    return true;
-  });
+  const navigate = useNavigate();
 
-  const handleSelectIssue = (issue: IssueReport) => {
-    setSelectedIssue(issue);
+  // Raw Leaflet marker instances, keyed by report id, so cluster-group actions
+  // (revealing/spiderfying) can resolve the marker even when it is hidden
+  // inside a cluster.
+  //
+  // The registry is maintained purely by IssueMarker mount/unmount lifecycle:
+  // a marker registers when it mounts and unregisters when it unmounts, so
+  // filtered-out/removed/merged reports drop out automatically. There is no
+  // bulk clear — an effect here would run after the children's register
+  // effects (React runs child effects first) and wipe valid entries.
+  const markerRegistryRef = useRef<Map<string, L.Marker | null>>(new Map());
+
+  const registerMarker = useCallback((id: string, marker: L.Marker | null) => {
+    markerRegistryRef.current.set(id, marker);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref is stable
+  }, []);
+
+  const unregisterMarker = useCallback((id: string) => {
+    markerRegistryRef.current.delete(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- ref is stable
+  }, []);
+
+  // Id of a report selected from the sidebar whose marker still needs to be
+  // revealed once the map finishes flying to it.
+  const pendingRevealRef = useRef<string | null>(null);
+
+  // Called when clicking directly on a marker on the map - DO NOT trigger flyTo so spiderfied clusters stay open
+  const handleMarkerClick = useCallback((issue: IssueReport) => {
+    setSelectedIssueId(issue.id);
+  }, []);
+
+  // Reveal a marker when selected from the sidebar: open its popup once map settles
+  const revealMarker = useCallback((id: string) => {
+    const marker = markerRegistryRef.current.get(id);
+    if (!marker) return;
+    if (!marker.isPopupOpen()) marker.openPopup();
+  }, []);
+
+  // Called when selecting an item from the sidebar list - flies to marker and opens popup
+  const handleSidebarSelectIssue = useCallback((issue: IssueReport) => {
+    setSelectedIssueId(issue.id);
+    pendingRevealRef.current = issue.id;
     flyToFn(issue.latitude, issue.longitude);
-  };
+  }, [flyToFn]);
 
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) return;
-    const match = issues.find(i =>
-      i.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (i.location && i.location.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-    if (match) {
-      flyToFn(match.latitude, match.longitude);
-      setSelectedIssue(match);
-    }
-  };
+  const handleViewDetail = useCallback((issue: IssueReport) => {
+    navigate(`/laporan/${issue.id}`);
+  }, [navigate]);
 
   const handleLocateMe = () => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          flyToFn(pos.coords.latitude, pos.coords.longitude);
-        },
-        () => {
-          flyToFn(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
-        }
-      );
-    } else {
-      flyToFn(DEFAULT_CENTER[0], DEFAULT_CENTER[1]);
-    }
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (p) => flyToFn(p.coords.latitude, p.coords.longitude),
+      () => flyToFn(DEFAULT_CENTER[0], DEFAULT_CENTER[1])
+    );
   };
 
+  /* ── Tile URL: Stadia Maps dark (free, no API key required for localhost) ── */
+  const tileUrl = mapTheme === 'dark'
+    ? 'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png'
+    : 'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png';
+
   return (
-    <div className="relative w-full h-full flex flex-col">
-      <div className="relative flex-1 flex overflow-hidden">
-        <MapSidebar
-          issues={filteredIssues}
-          totalIssues={issues.length}
-          onSelectIssue={handleSelectIssue}
-          selectedIssueId={selectedIssue?.id}
-        />
+    <div className="relative w-full h-full bg-[#0D0F0E] select-none">
 
-        <div className="relative flex-1 pointer-events-none">
-          <div className="hidden sm:flex absolute top-4 right-4 z-[1000] items-center gap-3 pointer-events-none">
-            <form onSubmit={handleSearchSubmit} className="relative pointer-events-auto">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Temukan lokasi..."
-                className="bg-slate-950/85 text-white placeholder-slate-400 text-sm px-4 py-2.5 pl-10 pr-8 rounded-full border border-slate-700/60 focus:outline-none focus:border-red-500 transition-all shadow-lg w-56"
-              />
-              <span className="absolute left-3.5 top-3 text-slate-400">
-                <SearchIcon className="w-4 h-4" />
-              </span>
-            </form>
+      {/* ━━━ 1. FLOATING SIDEBAR OVERLAY ━━━ */}
+      <MapSidebar
+        issues={issues}
+        totalIssues={issues.length}
+        onSelectIssue={handleSidebarSelectIssue}
+        selectedIssueId={selectedIssueId}
+        selectedCategory={selectedCategory}
+        onSelectCategory={setSelectedCategory}
+        selectedDuration={selectedDuration}
+        onSelectDuration={setSelectedDuration}
+        isOpen={isSidebarOpen}
+        onToggleOpen={() => setIsSidebarOpen(!isSidebarOpen)}
+      />
 
-            <button
-              onClick={() => { setIsPinMode(!isPinMode); setPinLocation(null); }}
-              title="Tandai Lokasi"
-              className={`flex items-center gap-2 text-sm font-bold px-4 py-2.5 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 pointer-events-auto ${
-                isPinMode
-                  ? 'bg-amber-500 hover:bg-amber-400 text-white animate-pulse'
-                  : 'bg-slate-950/85 hover:bg-slate-800 text-white border border-slate-700/60'
-              }`}
-            >
-              <MapPinIcon className="w-4 h-4" />
-              <span>{isPinMode ? 'Klik peta...' : 'Tandai Lokasi'}</span>
-            </button>
+      {/* ━━━ 2. FULL-WIDTH MAP CANVAS ━━━ */}
+      <div className="relative w-full h-full overflow-hidden">
 
-            <button
-              onClick={() => setIsPhotoMode(true)}
-              className="flex items-center gap-2 bg-red-600 hover:bg-red-700 text-white text-sm font-bold px-5 py-2.5 rounded-full shadow-lg transition-all transform hover:scale-105 active:scale-95 pointer-events-auto"
-            >
-              <CameraIcon className="w-4 h-4" />
-              <span>Laporan foto</span>
-              <span className="bg-white/20 text-xs px-2 py-0.5 rounded-full font-extrabold">AI</span>
-            </button>
-          </div>
-
-          {/* === MOBILE TOP SEARCH BAR === */}
-          <div className="sm:hidden absolute top-3 left-1/2 -translate-x-1/2 z-[1000] w-[calc(100%-2rem)] pointer-events-none">
-            <form onSubmit={handleSearchSubmit} className="relative pointer-events-auto">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Temukan lokasi..."
-                className="bg-slate-950/90 text-white placeholder-slate-400 text-sm px-4 py-2.5 pl-9 rounded-full border border-slate-700/60 focus:outline-none focus:border-red-500 transition-all shadow-xl w-full backdrop-blur-md"
-              />
-              <span className="absolute left-3 top-3 text-slate-400">
-                <SearchIcon className="w-4 h-4" />
-              </span>
-            </form>
-          </div>
-
-          {/* === MOBILE BOTTOM ACTION BAR === */}
-          <div className="sm:hidden absolute bottom-6 left-1/2 -translate-x-1/2 z-[1000] flex items-center gap-2 pointer-events-none">
-            <button
-              onClick={() => { setIsPinMode(!isPinMode); setPinLocation(null); }}
-              title="Tandai Lokasi"
-              className={`flex items-center gap-1.5 text-xs font-bold px-3.5 py-2.5 rounded-full shadow-xl transition-all active:scale-95 pointer-events-auto ${
-                isPinMode
-                  ? 'bg-amber-500 text-white animate-pulse'
-                  : 'bg-slate-950/90 text-white border border-slate-700/60'
-              }`}
-            >
-              <MapPinIcon className="w-4 h-4" />
-              <span>{isPinMode ? 'Tap peta' : 'Tandai'}</span>
-            </button>
-            <button
-              onClick={() => setIsPhotoMode(true)}
-              className="flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-bold px-4 py-2.5 rounded-full shadow-xl transition-all active:scale-95 pointer-events-auto"
-            >
-              <CameraIcon className="w-4 h-4" />
-              <span>Foto AI</span>
-            </button>
-            <button
-              onClick={handleLocateMe}
-              title="Lokasi Saya"
-              className="w-10 h-10 bg-slate-950/90 hover:bg-slate-800 text-white rounded-full border border-slate-700/60 shadow-xl flex items-center justify-center transition-all pointer-events-auto"
-            >
-              <LocationTargetIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setIsHeatmapEnabled(!isHeatmapEnabled)}
-              title="Toggle Heatmap"
-              className={`w-10 h-10 rounded-full border shadow-xl flex items-center justify-center transition-all pointer-events-auto ${isHeatmapEnabled
-                  ? 'bg-red-500/20 text-red-400 border-red-500/50'
-                  : 'bg-slate-950/90 text-slate-400 border-slate-700/60'
-                }`}
-            >
-              <FlameIcon className="w-5 h-5" />
-            </button>
-            <button
-              onClick={() => setMapTheme(mapTheme === 'dark' ? 'light' : 'dark')}
-              title="Ganti Tema Peta"
-              className="w-10 h-10 bg-slate-950/90 hover:bg-slate-800 text-white rounded-full border border-slate-700/60 shadow-xl flex items-center justify-center transition-all pointer-events-auto"
-            >
-              {mapTheme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-            </button>
-          </div>
-
-          {/* === DESKTOP RIGHT SIDE CONTROLS === */}
-          <div className="hidden sm:flex absolute right-4 top-24 z-[1000] flex-col gap-2 pointer-events-none">
-            <button
-              onClick={handleLocateMe}
-              title="Lokasi Saya"
-              className="w-10 h-10 bg-slate-950/90 hover:bg-slate-800 text-white rounded-xl border border-slate-700/60 shadow-lg flex items-center justify-center transition-all pointer-events-auto"
-            >
-              <LocationTargetIcon className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => setIsHeatmapEnabled(!isHeatmapEnabled)}
-              title="Toggle Heatmap"
-              className={`w-10 h-10 rounded-xl border shadow-lg flex items-center justify-center transition-all pointer-events-auto ${isHeatmapEnabled
-                  ? 'bg-red-500/20 text-red-400 border-red-500/50 shadow-red-500/20'
-                  : 'bg-slate-950/90 hover:bg-slate-800 text-slate-400 border-slate-700/60'
-                }`}
-            >
-              <FlameIcon className="w-5 h-5" />
-            </button>
-
-            <button
-              onClick={() => setMapTheme(mapTheme === 'dark' ? 'light' : 'dark')}
-              title="Ganti Tema Peta"
-              className="w-10 h-10 bg-slate-950/90 hover:bg-slate-800 text-white rounded-xl border border-slate-700/60 shadow-lg flex items-center justify-center transition-all pointer-events-auto"
-            >
-              {mapTheme === 'dark' ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
-            </button>
-
-            <div className="flex flex-col bg-slate-950/90 border border-slate-700/60 rounded-xl shadow-lg overflow-hidden mt-2 pointer-events-auto">
-              <button
-                onClick={() => zoomInFn()}
-                className="w-10 h-10 hover:bg-slate-800 text-white flex items-center justify-center font-bold text-lg border-b border-slate-700/60 transition-colors"
-              >
-                +
-              </button>
-              <button
-                onClick={() => zoomOutFn()}
-                className="w-10 h-10 hover:bg-slate-800 text-white flex items-center justify-center font-bold text-lg transition-colors"
-              >
-                −
-              </button>
-            </div>
-          </div>
-
-          <MapContainer
-            center={DEFAULT_CENTER}
-            zoom={DEFAULT_ZOOM}
-            style={{ height: '100%', width: '100%', pointerEvents: 'auto' }}
-            zoomControl={false}
+        {/* ── Floating top-right toolbar ── */}
+        <div className="absolute top-3 right-3 z-[1000] flex items-center gap-1.5 bg-[#161918]/90 backdrop-blur-lg p-1 rounded-2xl border border-[#2A2E2C] shadow-2xl">
+          <button
+            onClick={() => { setIsPinMode(!isPinMode); setPinLocation(null); }}
+            className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer border ${
+              isPinMode
+                ? 'bg-amber-500 text-black border-amber-400 font-bold animate-pulse'
+                : 'bg-[#0D0F0E] hover:bg-[#1F2422] text-[#F2F2F0] border-[#2A2E2C]'
+            }`}
           >
-            <MapControlsHelper
-              onRegisterFlyTo={handleRegisterFlyTo}
-            />
+            <MapPinIcon className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isPinMode ? 'Klik Peta...' : 'Pin'}</span>
+          </button>
 
-            <BoundsWatcher onBoundsChange={onBoundsChange} />
+          <button
+            onClick={() => setIsHeatmapEnabled(!isHeatmapEnabled)}
+            title="Toggle Heatmap"
+            className={`py-2 px-2.5 rounded-xl text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer border ${
+              isHeatmapEnabled
+                ? 'bg-[#1B5E20]/50 text-[#81C784] border-[#2E7D32]'
+                : 'bg-[#0D0F0E] hover:bg-[#1F2422] text-[#9BA39E] border-[#2A2E2C]'
+            }`}
+          >
+            <FlameIcon className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">Heatmap</span>
+          </button>
 
-            <MapClickHandler isPinMode={isPinMode} onMapClick={handleMapClick} />
+          <button onClick={handleLocateMe} title="Lokasi Saya"
+            className="w-8 h-8 rounded-xl bg-[#0D0F0E] hover:bg-[#1F2422] text-[#81C784] border border-[#2A2E2C] flex items-center justify-center cursor-pointer"
+          >
+            <LocationTargetIcon className="w-4 h-4" />
+          </button>
 
-            <TileLayer
-              attribution='&copy; <a href="https://www.esri.com/">Esri</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-              url={
-                mapTheme === 'dark'
-                  ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
-                  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-              }
-            />
-
-            <HeatmapLayer issues={filteredIssues} enabled={isHeatmapEnabled} theme={mapTheme} />
-
-            <MarkerClusterGroup chunkedLoading>
-              {filteredIssues.map((issue) => (
-                <Marker
-                  key={issue.id}
-                  position={[issue.latitude, issue.longitude]}
-                  icon={createCustomMarkerIcon({
-                    category: issue.category,
-                    source: issue.source,
-                    durationDays: getDurationDays(issue.reportedAt),
-                    imageUrl: issue.imageUrl,
-                    title: issue.title,
-                  })}
-                  eventHandlers={{ click: () => handleSelectIssue(issue) }}
-                >
-                  <MarkerPopup issue={issue} onViewDetail={handleSelectIssue} />
-                </Marker>
-              ))}
-            </MarkerClusterGroup>
-
-            {pinLocation && (
-              <Marker
-                position={[pinLocation.lat, pinLocation.lng]}
-                icon={pinMarkerIcon}
-                draggable
-                eventHandlers={{
-                  dragend(e) {
-                    const latlng = (e.target as L.Marker).getLatLng();
-                    setPinLocation({ lat: latlng.lat, lng: latlng.lng });
-                  },
-                }}
-              />
-            )}
-          </MapContainer>
+          <button
+            onClick={() => setMapTheme(mapTheme === 'dark' ? 'light' : 'dark')}
+            title="Ganti Tema"
+            className="w-8 h-8 rounded-xl bg-[#0D0F0E] hover:bg-[#1F2422] text-[#F2F2F0] border border-[#2A2E2C] flex items-center justify-center cursor-pointer"
+          >
+            {mapTheme === 'dark'
+              ? <SunIcon className="w-3.5 h-3.5 text-amber-300" />
+              : <MoonIcon className="w-3.5 h-3.5 text-blue-300" />}
+          </button>
         </div>
 
-        <ReportDetailModal
-          issue={selectedIssue}
-          onClose={() => setSelectedIssue(null)}
-        />
+        {/* ── Floating bottom-right zoom ── */}
+        <div className="absolute bottom-5 right-3 z-[1000] flex flex-col bg-[#161918]/90 border border-[#2A2E2C] rounded-2xl shadow-2xl overflow-hidden backdrop-blur-md">
+          <button onClick={() => zoomInFn()} title="Zoom In"
+            className="w-9 h-9 hover:bg-[#1F2422] text-[#F2F2F0] flex items-center justify-center font-bold text-base border-b border-[#2A2E2C] cursor-pointer">+</button>
+          <button onClick={() => zoomOutFn()} title="Zoom Out"
+            className="w-9 h-9 hover:bg-[#1F2422] text-[#F2F2F0] flex items-center justify-center font-bold text-base cursor-pointer">−</button>
+        </div>
 
-        <PhotoReportModal
-          isOpen={isPhotoMode}
-          onClose={() => setIsPhotoMode(false)}
-        />
+        {/* ── Leaflet Map ── */}
+        <MapContainer
+          center={DEFAULT_CENTER}
+          zoom={DEFAULT_ZOOM}
+          style={{ height: '100%', width: '100%' }}
+          zoomControl={false}
+        >
+          <MapControlsHelper onRegisterFlyTo={handleRegisterFlyTo} sidebarOpen={isSidebarOpen} />
+          <BoundsWatcher onBoundsChange={onBoundsChange} />
+          <MapClickHandler isPinMode={isPinMode} onMapClick={handleMapClick} />
+          <MapSettleReveal pendingRevealRef={pendingRevealRef} onReveal={revealMarker} />
 
-        <PinReportModal
-          pinLocation={pinLocation}
-          onClose={() => { setPinLocation(null); }}
-          onSubmit={({ title, category, description, lat, lng }) => {
-            const newReport: IssueReport = {
-              id: `REPORT-${Date.now().toString().slice(-4)}`,
-              title,
-              description: description || 'Laporan baru ditambahkan via lokasi pin peta.',
-              category,
-              severityScore: 7.5,
-              status: 'new',
-              source: 'citizen',
-              imageUrl: 'https://images.unsplash.com/photo-1515162816999-a0c47dc192f7?w=800',
-              latitude: lat,
-              longitude: lng,
-              reportedAt: new Date().toISOString(),
-              lastConfirmedAt: new Date().toISOString(),
-              confirmationCount: 1,
-              location: `Koordinat (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-              statusHistory: [
-                {
-                  status: 'new',
-                  timestamp: new Date().toISOString(),
-                  message: 'Laporan baru dibuat melalui lokasi pin peta',
+          <TileLayer
+            attribution='&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://openstreetmap.org">OSM</a>'
+            url={tileUrl}
+          />
+
+          <HeatmapLayer issues={filteredIssues} enabled={isHeatmapEnabled} theme={mapTheme} />
+
+          {filteredIssues.map((issue) => (
+            <IssueMarker
+              key={issue.id}
+              issue={issue}
+              isSelected={selectedIssueId === issue.id}
+              onSelect={handleMarkerClick}
+              onViewDetail={handleViewDetail}
+              registerMarker={registerMarker}
+              unregisterMarker={unregisterMarker}
+            />
+          ))}
+
+          {pinLocation && (
+            <Marker
+              position={[pinLocation.lat, pinLocation.lng]}
+              icon={pinMarkerIcon}
+              draggable
+              eventHandlers={{
+                dragend(e) {
+                  const ll = (e.target as L.Marker).getLatLng();
+                  setPinLocation({ lat: ll.lat, lng: ll.lng });
                 },
-              ],
-            };
-            if (onAddIssue) {
-              onAddIssue(newReport);
-            }
-            setPinLocation(null);
-          }}
-        />
+              }}
+            />
+          )}
+        </MapContainer>
       </div>
+
+      {/* ━━━ 3. MODALS ━━━ */}
+      <PinReportModal
+        pinLocation={pinLocation}
+        onClose={() => setPinLocation(null)}
+        onSubmit={(issue) => {
+          onAddIssue?.(issue);
+          setPinLocation(null);
+        }}
+      />
     </div>
   );
 }
